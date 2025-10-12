@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Link & Sync WhatsApp Account (v4 Flow)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: grid; place-content: center; height: 100vh; text-align: center; margin: 20px; background-color: #f0f2f5; }
+        h1 { color: #1c1e21; }
+        button { font-size: 1rem; font-weight: bold; background-color: #1877f2; color: #fff; border: 0; border-radius: 6px; padding: 0 24px; height: 48px; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #166fe5; }
+        #response { margin-top: 20px; font-family: monospace; background-color: #fff; padding: 15px; border-radius: 4px; word-break: break-all; max-width: 600px; text-align: left; line-height: 1.5; border: 1px solid #ddd; }
+        code { background-color: #e0e0e0; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Connect Your WhatsApp Account</h1>
+    <p>Link your WhatsApp Business Account to our platform securely.</p>
+    <button id="connectButton">Login with Facebook</button>
+    <div id="response">Your Platform API Key and Account IDs will appear here.</div>
+
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+
+    <script>
+        // --- STATE VARIABLES ---
+        let authCode = null;
+        let sessionInfo = null;
+
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId: '1138116971586519', // Your App ID
+                cookie: true,
+                xfbml: true,
+                version: 'v24.0'
+            });
+            document.getElementById('connectButton').addEventListener('click', launchWhatsAppOnboarding);
+        };
+
+        // ###############################################################
+        // ## THIS IS THE EVENT LISTENER YOU ASKED TO ADD ##
+        // It listens for messages containing account IDs from the pop-up.
+        // ###############################################################
+        window.addEventListener('message', (event) => {
+            if (event.origin !== "https://www.facebook.com") return;
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'WA_EMBEDDED_SIGNUP') {
+                    console.log('Received Message Event:', data); // For debugging
+                    // When the user finishes, the event type is 'FINISH'. We store the data.
+                    if (data.event === 'FINISH' || data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
+                        sessionInfo = data.data;
+                        // We then check if we also have the 'code' from the other callback.
+                        tryToSendToServer();
+                    }
+                }
+            } catch {
+                // Non-JSON messages can be ignored
+            }
+        });
+
+        // --- FB.login Callback ---
+        // This function gets the temporary 'code' when the pop-up closes.
+        const fbLoginCallback = (response) => {
+            const responseDiv = document.getElementById('response');
+            console.log('FB Login Response:', response); // Debug log
+            if (response.authResponse && response.authResponse.code) {
+                authCode = response.authResponse.code;
+                responseDiv.innerText = 'Authorization complete. Retrieving session info...';
+                // We then check if we also have the 'sessionInfo' from the listener.
+                tryToSendToServer();
+            } else {
+                responseDiv.innerText = 'User cancelled login or did not fully authorize.';
+            }
+        };
+
+        // --- Gatekeeper Function ---
+        // This function sends data to your backend ONLY when both 'code' and 'sessionInfo' are ready.
+        function tryToSendToServer() {
+            if (authCode && sessionInfo) {
+                document.getElementById('response').innerText = 'Account info received. Finalizing setup...';
+                sendDataToServer({ code: authCode, sessionInfo: sessionInfo });
+                authCode = null;
+                sessionInfo = null;
+            }
+        }
+        
+        // --- Backend Communication ---
+        async function sendDataToServer(data) {
+            const responseDiv = document.getElementById('response');
+            try {
+                const response = await fetch('/complete-onboarding-v4', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const responseData = await response.json();
+                if (responseData.success) {
+                    responseDiv.innerHTML = `<strong>✅ Account Linked Successfully!</strong><br><br>` +
+                                          `<strong>Platform API Key:</strong><br><code>${responseData.platformApiKey}</code><br><br>` +
+                                          `<strong>WhatsApp Business Account ID (WABA ID):</strong><br><code>${responseData.wabaId}</code>`;
+                } else {
+                    responseDiv.innerText = `❌ Error: ${responseData.error || 'An unknown error occurred.'}`;
+                }
+            } catch (error) {
+                responseDiv.innerText = '❌ Failed to communicate with the backend server.';
+            }
+        }
+
+        // --- Launch Function ---
+        function launchWhatsAppOnboarding() {
+            document.getElementById('response').innerText = 'Launching pop-up...';
+            FB.login(fbLoginCallback, {
+                config_id: '1314536956275303', // Your config_id
+                response_type: 'code',
+                override_default_response_type: true,
+                // Remove explicit redirect_uri for embedded signup
+                extras: {
+                     "featureType": "whatsapp_business_app_onboarding",
+                    "sessionInfoVersion": "3"
+                    // setup object is required for the v4 flow
+                },
+                scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management'
+            });
+        }
+    </script>
+</body>
+</html>

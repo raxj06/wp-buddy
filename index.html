@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp Business Platform</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            display: grid; 
+            place-content: center; 
+            height: 100vh; 
+            text-align: center; 
+            margin: 0; 
+            background-color: #f0f2f5; 
+        }
+        .container {
+            max-width: 800px;
+            padding: 20px;
+        }
+        h1 { 
+            color: #1c1e21; 
+            margin-bottom: 20px;
+        }
+        .description {
+            color: #65676b;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .features {
+            text-align: left;
+            margin: 30px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .features h2 {
+            color: #1c1e21;
+            margin-top: 0;
+        }
+        .features ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .features li {
+            margin-bottom: 15px;
+            padding-left: 30px;
+            position: relative;
+        }
+        .features li:before {
+            content: "✓";
+            color: #25D366;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        .auth-section {
+            margin: 30px 0;
+        }
+        .btn { 
+            font-size: 1rem; 
+            font-weight: bold; 
+            background-color: #25D366; /* WhatsApp green color */
+            color: #fff; 
+            border: 0; 
+            border-radius: 6px; 
+            padding: 0 24px; 
+            height: 48px; 
+            cursor: pointer; 
+            transition: background-color 0.2s; 
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:hover { background-color: #128C7E; /* Darker green on hover */}
+        .btn-secondary {
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            border: 1px solid #ddd;
+            margin: 0 10px;
+        }
+        .btn-secondary:hover {
+            background-color: #e4e6eb;
+        }
+        #response { 
+            margin-top: 20px; 
+            font-family: monospace; 
+            background-color: #fff; 
+            padding: 15px; 
+            border-radius: 4px; 
+            word-break: break-all; 
+            max-width: 600px; 
+            text-align: left; 
+            line-height: 1.5; 
+            border: 1px solid #ddd; 
+            display: none;
+        }
+        code { background-color: #e0e0e0; padding: 2px 4px; border-radius: 3px; }
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-info.visible {
+            display: flex;
+        }
+        .user-avatar {
+            background: #25D366;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .logout-btn {
+            background: #f0f2f5;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .logout-btn:hover {
+            background: #e4e6eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="user-info" id="userInfo">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <span id="userName">User</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="container">
+        <h1>WhatsApp Business Platform</h1>
+        <p class="description">Connect your WhatsApp Business Account and manage customer communications seamlessly with our powerful platform.</p>
+        
+        <div class="features">
+            <h2>Platform Features</h2>
+            <ul>
+                <li>Connect multiple WhatsApp Business Accounts</li>
+                <li>Receive real-time webhook notifications</li>
+                <li>Manage customer conversations</li>
+                <li>Automate responses and workflows</li>
+                <li>Track message delivery and read status</li>
+                <li>Centralized dashboard for all your accounts</li>
+            </ul>
+        </div>
+        
+        <div class="auth-section" id="authSection">
+            <p>Please log in or sign up to connect your WhatsApp Business Account</p>
+            <a href="/auth.html" class="btn">Login / Sign Up</a>
+        </div>
+        
+        <div class="auth-section" id="dashboardSection" style="display: none;">
+            <p>Welcome back! You're logged in and ready to manage your WhatsApp accounts.</p>
+            <a href="/dashboard.html" class="btn">Go to Dashboard</a>
+            <button id="connectButton" class="btn btn-secondary">Connect Another Account</button>
+        </div>
+        
+        <div id="response">Your Platform API Key and Account IDs will appear here.</div>
+    </div>
+
+    <!-- SDK loading -->
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+            // User is logged in
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+            document.getElementById('userInfo').classList.add('visible');
+            
+            // Get user info
+            fetch('/api/auth/profile', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const user = data.user;
+                    document.getElementById('userName').textContent = user.name;
+                    document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user info:', error);
+            });
+        }
+        
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.reload();
+        });
+        
+        // Connect button functionality
+        document.getElementById('connectButton').addEventListener('click', () => {
+            // Redirect to dashboard where the actual connection happens
+            window.location.href = '/dashboard.html';
+        });
+    </script>
+</body>
+</html>

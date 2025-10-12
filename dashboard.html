@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Business Platform - Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: #1c1e21;
+        }
+        
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            background: #25D366;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            background: #e4e6eb;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            background: #f0f2f5;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .logout-btn:hover {
+            background: #e4e6eb;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .page-title {
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: #25D366;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #128C7E;
+        }
+        
+        .btn-secondary {
+            background: #f0f2f5;
+            color: #1c1e21;
+            border: 1px solid #ddd;
+        }
+        
+        .btn-secondary:hover {
+            background: #e4e6eb;
+        }
+        
+        .accounts-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .account-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 25px;
+            transition: box-shadow 0.2s;
+            cursor: pointer;
+        }
+        
+        .account-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .account-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            width: 150px;
+            font-size: 1rem;
+        }
+        
+        .detail-value {
+            flex: 1;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        
+        .account-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .webhook-config {
+            margin-top: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #65676b;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .empty-state-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        /* Icon button styles */
+        .icon-btn {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .icon-btn:hover {
+            background: #f0f2f5;
+        }
+        
+        @media (max-width: 768px) {
+            .accounts-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal {
+                width: 95%;
+                margin: 10px;
+            }
+            
+            .detail-label {
+                width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">W</div>
+            <div class="logo-text">WhatsApp Business Platform</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userInitial">U</div>
+            <div id="userName">User Name</div>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h1 class="page-title">Dashboard</h1>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Connect WhatsApp Account</div>
+                <button class="btn" id="connectBtn">Connect Account</button>
+            </div>
+            <div id="response" class="message">Your Platform API Key and Account IDs will appear here.</div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Connected Accounts</div>
+            </div>
+            <div id="accountsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📱</div>
+                    <div class="empty-state-text">No WhatsApp accounts connected yet</div>
+                    <button class="btn" id="connectAccountBtn">Connect Your First Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const logoutBtn = document.getElementById('logoutBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const connectAccountBtn = document.getElementById('connectAccountBtn');
+        const responseDiv = document.getElementById('response');
+        const accountsContainer = document.getElementById('accountsContainer');
+        const userName = document.getElementById('userName');
+        const userInitial = document.getElementById('userInitial');
+        
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/auth.html';
+        }
+        
+        // Logout function
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/auth.html';
+        });
+        
+        // Connect WhatsApp account
+        connectBtn.addEventListener('click', launchWhatsAppSignup);
+        connectAccountBtn.addEventListener('click', launchWhatsAppSignup);
+        
+        // Initialize user info
+        fetchUserProfile();
+        fetchConnectedAccounts();
+        
+        // Fetch user profile
+        async function fetchUserProfile() {
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const user = data.user;
+                    userName.textContent = user.name;
+                    userInitial.textContent = user.name.charAt(0).toUpperCase();
+                } else {
+                    // Token might be invalid
+                    localStorage.removeItem('token');
+                    window.location.href = '/auth.html';
+                }
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+            }
+        }
+        
+        // Fetch connected accounts
+        async function fetchConnectedAccounts() {
+            try {
+                const response = await fetch('/api/whatsapp/accounts', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAccounts(data.accounts);
+                } else {
+                    console.error('Error fetching accounts:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching accounts:', error);
+            }
+        }
+        
+        // Display accounts in the UI
+        function displayAccounts(accounts) {
+            const accountsContainer = document.getElementById('accountsContainer');
+            
+            if (accounts.length === 0) {
+                accountsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📱</div>
+                        <div class="empty-state-text">No WhatsApp accounts connected yet</div>
+                        <button class="btn" id="connectAccountBtn">Connect Your First Account</button>
+                    </div>
+                `;
+                document.getElementById('connectAccountBtn').addEventListener('click', launchWhatsAppSignup);
+                return;
+            }
+            
+            // Create accounts grid
+            let accountsHTML = '<div class="accounts-list">';
+            
+            accounts.forEach(account => {
+                accountsHTML += `
+                    <div class="account-card" data-waba-id="${account.waba_id}">
+                        <div class="account-name">WhatsApp Business Account</div>
+                        <div class="account-details">
+                            <div class="account-detail">
+                                <span class="detail-label">WABA ID:</span>
+                                <span class="detail-value">${account.waba_id}</span>
+                            </div>
+                            <div class="account-detail">
+                                <span class="detail-label">Phone ID:</span>
+                                <span class="detail-value">${account.phone_number_id || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="account-actions">
+                            <button class="btn btn-secondary view-details-btn" data-waba-id="${account.waba_id}">View Details</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            accountsHTML += '</div>';
+            accountsContainer.innerHTML = accountsHTML;
+            
+            // Add event listeners to view details buttons
+            document.querySelectorAll('.view-details-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const wabaId = this.getAttribute('data-waba-id');
+                    showAccountDetails(wabaId);
+                });
+            });
+        }
+        
+        // Show detailed account information
+        async function showAccountDetails(wabaId) {
+            try {
+                const response = await fetch(`/api/whatsapp/accounts/${wabaId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAccountDetailsModal(data.account);
+                } else {
+                    console.error('Error fetching account details:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching account details:', error);
+            }
+        }
+        
+        // Display account details in a modal
+        function displayAccountDetailsModal(account) {
+            // Create modal HTML
+            const modalHTML = `
+                <div class="modal-overlay" id="accountDetailsModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h2>WhatsApp Account Details</h2>
+                            <button class="close-btn" id="closeModal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="account-detail">
+                                <span class="detail-label">WABA ID:</span>
+                                <span class="detail-value">
+                                    <span id="wabaIdValue">${account.waba_id}</span>
+                                    <button class="icon-btn" id="copyWabaIdBtn" title="Copy WABA ID">📋</button>
+                                </span>
+                                <input type="hidden" id="fullWabaId" value="${account.waba_id}">
+                            </div>
+                            <div class="account-detail">
+                                <span class="detail-label">Phone Number ID:</span>
+                                <span class="detail-value">
+                                    <span id="phoneNumberValue">${account.phone_number_id || 'N/A'}</span>
+                                    <button class="icon-btn" id="copyPhoneNumberBtn" title="Copy Phone Number ID">📋</button>
+                                </span>
+                                <input type="hidden" id="fullPhoneNumber" value="${account.phone_number_id || ''}">
+                            </div>
+                            <div class="account-detail">
+                                <span class="detail-label">Platform API Key:</span>
+                                <span class="detail-value">
+                                    <span id="apiKeyValue">••••••••</span>
+                                    <button class="icon-btn" id="revealApiKeyBtn" title="Reveal API key">👁️</button>
+                                    <button class="icon-btn" id="copyApiKeyBtn" title="Copy API key">📋</button>
+                                </span>
+                                <input type="hidden" id="fullApiKey" value="${account.platform_api_key || ''}">
+                            </div>
+                            <div class="account-detail">
+                                <span class="detail-label">Access Token:</span>
+                                <span class="detail-value">
+                                    <span id="accessTokenValue">••••••••</span>
+                                    <button class="icon-btn" id="revealTokenBtn" title="Reveal token">👁️</button>
+                                    <button class="icon-btn" id="copyTokenBtn" title="Copy token">📋</button>
+                                </span>
+                                <input type="hidden" id="fullAccessToken" value="${account.access_token || ''}">
+                            </div>
+                            <div class="account-detail">
+                                <span class="detail-label">Created At:</span>
+                                <span class="detail-value">${new Date(account.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" id="closeModalBtn">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Add event listeners
+            document.getElementById('closeModal').addEventListener('click', closeAccountDetailsModal);
+            document.getElementById('closeModalBtn').addEventListener('click', closeAccountDetailsModal);
+            
+            // Add event listeners for copy actions
+            document.getElementById('copyWabaIdBtn').addEventListener('click', copyWabaId);
+            document.getElementById('copyPhoneNumberBtn').addEventListener('click', copyPhoneNumber);
+            
+            // Add event listeners for API key actions
+            document.getElementById('revealApiKeyBtn').addEventListener('click', toggleApiKeyVisibility);
+            document.getElementById('copyApiKeyBtn').addEventListener('click', copyApiKey);
+            
+            // Add event listeners for token actions
+            document.getElementById('revealTokenBtn').addEventListener('click', toggleTokenVisibility);
+            document.getElementById('copyTokenBtn').addEventListener('click', copyAccessToken);
+            
+            // Close modal when clicking outside
+            document.querySelector('.modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAccountDetailsModal();
+                }
+            });
+        }
+        
+        // Copy WABA ID to clipboard
+        function copyWabaId() {
+            const fullWabaId = document.getElementById('fullWabaId').value;
+            
+            navigator.clipboard.writeText(fullWabaId).then(() => {
+                // Show feedback to user
+                const copyBtn = document.getElementById('copyWabaIdBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅';
+                copyBtn.title = 'Copied!';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = '📋';
+                    copyBtn.title = 'Copy WABA ID';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy WABA ID to clipboard.');
+            });
+        }
+        
+        // Copy Phone Number ID to clipboard
+        function copyPhoneNumber() {
+            const fullPhoneNumber = document.getElementById('fullPhoneNumber').value;
+            
+            if (!fullPhoneNumber || fullPhoneNumber === 'N/A') {
+                alert('No phone number ID available to copy.');
+                return;
+            }
+            
+            navigator.clipboard.writeText(fullPhoneNumber).then(() => {
+                // Show feedback to user
+                const copyBtn = document.getElementById('copyPhoneNumberBtn');
+                copyBtn.textContent = '✅';
+                copyBtn.title = 'Copied!';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = '📋';
+                    copyBtn.title = 'Copy Phone Number ID';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy Phone Number ID to clipboard.');
+            });
+        }
+        
+        // Toggle API key visibility
+        function toggleApiKeyVisibility() {
+            const apiKeyValue = document.getElementById('apiKeyValue');
+            const fullApiKey = document.getElementById('fullApiKey').value;
+            const revealBtn = document.getElementById('revealApiKeyBtn');
+            
+            if (apiKeyValue.textContent === '••••••••') {
+                // Reveal the API key
+                apiKeyValue.textContent = fullApiKey.substring(0, 20) + '...';
+                revealBtn.textContent = '🔒';
+                revealBtn.title = 'Hide API key';
+            } else {
+                // Hide the API key
+                apiKeyValue.textContent = '••••••••';
+                revealBtn.textContent = '👁️';
+                revealBtn.title = 'Reveal API key';
+            }
+        }
+        
+        // Copy API key to clipboard
+        function copyApiKey() {
+            const fullApiKey = document.getElementById('fullApiKey').value;
+            
+            navigator.clipboard.writeText(fullApiKey).then(() => {
+                // Show feedback to user
+                const copyBtn = document.getElementById('copyApiKeyBtn');
+                copyBtn.textContent = '✅';
+                copyBtn.title = 'Copied!';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = '📋';
+                    copyBtn.title = 'Copy API key';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy API key to clipboard.');
+            });
+        }
+        
+        // Toggle access token visibility
+        function toggleTokenVisibility() {
+            const tokenValue = document.getElementById('accessTokenValue');
+            const fullToken = document.getElementById('fullAccessToken').value;
+            const revealBtn = document.getElementById('revealTokenBtn');
+            
+            if (tokenValue.textContent === '••••••••') {
+                // Reveal the token
+                tokenValue.textContent = fullToken.substring(0, 20) + '...';
+                revealBtn.textContent = '🔒';
+                revealBtn.title = 'Hide token';
+            } else {
+                // Hide the token
+                tokenValue.textContent = '••••••••';
+                revealBtn.textContent = '👁️';
+                revealBtn.title = 'Reveal token';
+            }
+        }
+        
+        // Copy access token to clipboard
+        function copyAccessToken() {
+            const fullToken = document.getElementById('fullAccessToken').value;
+            
+            navigator.clipboard.writeText(fullToken).then(() => {
+                // Show feedback to user
+                const copyBtn = document.getElementById('copyTokenBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅';
+                copyBtn.title = 'Copied!';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = '📋';
+                    copyBtn.title = 'Copy token';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy token to clipboard.');
+            });
+        }
+
+        // Close account details modal
+        function closeAccountDetailsModal() {
+            const modal = document.getElementById('accountDetailsModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Copy account details to clipboard
+        function copyAccountDetails(account) {
+            const detailsText = `
+WABA ID: ${account.waba_id}
+Phone Number ID: ${account.phone_number_id || 'N/A'}
+Platform API Key: [HIDDEN FOR SECURITY - Use the copy button next to the key to copy it]
+Access Token: [HIDDEN FOR SECURITY - Use the copy button next to the token to copy it]
+Created At: ${new Date(account.created_at).toLocaleString()}
+            `.trim();
+            
+            navigator.clipboard.writeText(detailsText).then(() => {
+                alert('Account details copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy details to clipboard.');
+            });
+        }
+
+        // SDK loading
+        const script = document.createElement('script');
+        script.async = true;
+        script.defer = true;
+        script.crossOrigin = 'anonymous';
+        script.src = 'https://connect.facebook.net/en_US/sdk.js';
+        document.head.appendChild(script);
+        
+        // SDK initialization
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId: '1138116971586519', // Your App ID from .env
+                cookie: true,
+                xfbml: true,
+                version: 'v24.0' // Latest Graph API version
+            });
+        };
+        
+        // State variables
+        let authCode = null;
+        let sessionInfo = null;
+        
+        // Session logging message event listener
+        window.addEventListener('message', (event) => {
+            // Ensure the message is from Facebook
+            if (event.origin !== "https://www.facebook.com" && 
+                event.origin !== "https://staticxx.facebook.com") return;
+            
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'WA_EMBEDDED_SIGNUP') {
+                    console.log('Received Message Event:', data);
+                    // When the user finishes, the event type is 'FINISH'
+                    if (data.event === 'FINISH' || data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
+                        sessionInfo = data.data;
+                        console.log('Received session info from message event');
+                        // Check if we also have the 'code' from the other callback
+                        tryToSendToServer();
+                    }
+                }
+            } catch (e) {
+                // Handle non-JSON messages which may contain the code
+                console.log('Non-JSON message received:', event.data);
+                // Check if this message contains a code parameter
+                if (typeof event.data === 'string' && event.data.includes('code=')) {
+                    // Extract code from the query string
+                    const urlParams = new URLSearchParams(event.data);
+                    const code = urlParams.get('code');
+                    if (code) {
+                        console.log('Extracted code from non-JSON message:', code);
+                        authCode = code;
+                        // Check if we also have the 'sessionInfo' from the other callback
+                        tryToSendToServer();
+                    }
+                }
+            }
+        });
+        
+        // Response callback - gets the temporary 'code' when the pop-up closes
+        const fbLoginCallback = (response) => {
+            const responseDiv = document.getElementById('response');
+            console.log('FB Login Response:', response);
+            
+            if (response.authResponse && response.authResponse.code) {
+                authCode = response.authResponse.code;
+                responseDiv.innerText = 'Authorization complete. Retrieving session info...';
+                console.log('Received auth code from FB.login callback');
+                // Check if we also have the 'sessionInfo' from the listener
+                tryToSendToServer();
+            } else {
+                responseDiv.innerText = 'User cancelled login or did not fully authorize.';
+                console.log('No auth code received from FB.login callback:', response);
+            }
+        };
+        
+        // Gatekeeper Function - sends data to your backend ONLY when both 'code' and 'sessionInfo' are ready
+        function tryToSendToServer() {
+            console.log('Checking if ready to send to server - authCode:', authCode ? 'YES' : 'NO', 'sessionInfo:', sessionInfo ? 'YES' : 'NO');
+            if (authCode && sessionInfo) {
+                document.getElementById('response').innerText = 'Account info received. Finalizing setup...';
+                console.log('Sending data to server:', { code: authCode, sessionInfo: sessionInfo });
+                sendDataToServer({ code: authCode, sessionInfo: sessionInfo });
+                // Clear the variables after sending
+                authCode = null;
+                sessionInfo = null;
+            }
+        }
+        
+        // Backend Communication
+        async function sendDataToServer(data) {
+            const responseDiv = document.getElementById('response');
+            try {
+                const response = await fetch('/complete-onboarding-v4', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                const responseData = await response.json();
+                if (responseData.success) {
+                    responseDiv.innerHTML = `<strong>✅ Account Linked Successfully!</strong><br><br>` +
+                                          `<strong>Platform API Key:</strong><br><code>${responseData.platformApiKey}</code><br><br>` +
+                                          `<strong>WhatsApp Business Account ID (WABA ID):</strong><br><code>${responseData.wabaId}</code><br><br>` +
+                                          `<strong>Phone Number ID:</strong><br><code>${responseData.phoneNumberId}</code><br><br>` +
+                                          `<strong>Long-Lived Access Token:</strong><br><code>${responseData.longLivedAccessToken}</code>`;
+                    
+                    // Refresh accounts list
+                    fetchConnectedAccounts();
+                } else {
+                    responseDiv.innerText = `❌ Error: ${responseData.error || 'An unknown error occurred.'}`;
+                }
+            } catch (error) {
+                console.error('Error communicating with backend:', error);
+                responseDiv.innerText = '❌ Failed to communicate with the backend server.';
+            }
+        }
+        
+        // Launch method and callback registration
+        function launchWhatsAppSignup() {
+            document.getElementById('response').innerText = 'Launching pop-up...';
+            FB.login(fbLoginCallback, {
+                config_id: '1314536956275303', // Your config_id from Facebook
+                response_type: 'code',
+                override_default_response_type: true,
+                // For embedded signup, we don't specify redirect_uri as Facebook uses its own
+                extras: {
+                    "featureType": "whatsapp_business_app_onboarding",
+                    "sessionInfoVersion": "3"
+                },
+                scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management'
+            });
+        }
+    </script>
+</body>
+</html>

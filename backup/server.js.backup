@@ -1,0 +1,188 @@
+// Import required packages
+const express = require('express');
+const axios = require('axios');
+const crypto = require('crypto');
+require('dotenv').config();
+
+// --- NEW: Startup Environment Variable Check ---
+// Ensures all necessary variables are set before starting the server.
+const requiredEnvVars = ['META_APP_ID', 'META_APP_SECRET', 'HOST_URL', 'WEBHOOK_VERIFY_TOKEN'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`FATAL ERROR: Environment variable ${envVar} is not set.`);
+        process.exit(1);
+    }
+}
+
+// Initialize the Express app
+const app = express();
+const PORT = process.env.PORT || 3001;
+const META_API_VERSION = 'v19.0';
+
+// Middleware to parse JSON and serve static files
+app.use(express.json());
+app.use(express.static('.'));
+
+// --- Helper Functions to initiate Syncs (Unchanged) ---
+async function initiateContactSync(phoneNumberId, accessToken) {
+    console.log(`🔄 Initiating CONTACT sync for Phone Number ID: ${phoneNumberId}`);
+    try {
+        await axios.post(
+            `https://graph.facebook.com/${META_API_VERSION}/${phoneNumberId}/smb_app_data`,
+            { messaging_product: "whatsapp", sync_type: "smb_app_state_sync" },
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        console.log('✅ Contact sync initiated successfully.');
+    } catch (error) {
+        console.error('❌ Failed to initiate contact sync:', error.response ? error.response.data.error.message : error.message);
+    }
+}
+
+async function initiateHistorySync(phoneNumberId, accessToken) {
+    console.log(`🔄 Initiating HISTORY sync for Phone Number ID: ${phoneNumberId}`);
+    try {
+        await axios.post(
+            `https://graph.facebook.com/${META_API_VERSION}/${phoneNumberId}/smb_app_data`,
+            { messaging_product: "whatsapp", sync_type: "history" },
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        console.log('✅ History sync initiated successfully.');
+    } catch (error) {
+        console.error('❌ Failed to initiate history sync:', error.response ? error.response.data.error.message : error.message);
+    }
+}
+
+// --- MODIFIED: Main Onboarding Endpoint for Embedded Signup v4 ---
+app.post('/complete-onboarding-v4', async (req, res) => {
+    const { code, sessionInfo } = req.body;
+    if (!code || !sessionInfo) {
+        return res.status(400).json({ error: 'Authorization code or session info is missing.' });
+    }
+
+    const { phone_number_id: phoneNumberId, waba_id: wabaId } = sessionInfo;
+    const APP_ID = process.env.META_APP_ID;
+    const APP_SECRET = process.env.META_APP_SECRET;
+    
+    // Based on Facebook's documentation and community discussions,
+    // embedded signup might use Facebook's default redirect_uri
+    const redirectUrisToTry = [
+        'https://staticxx.facebook.com/x/connect/login_success.html',  // Facebook's default
+        'https://www.facebook.com/connect/login_success.html',        // Alternative Facebook default
+        process.env.HOST_URL,                                         // Your configured URL
+        `${process.env.HOST_URL}/`                                    // Your URL with trailing slash
+    ];
+
+    let tokenResponse = null;
+    let lastError = null;
+    
+    // Try each redirect_uri until one works
+    for (const redirectUri of redirectUrisToTry) {
+        try {
+            console.log(`Trying redirect_uri: ${redirectUri}`);
+            tokenResponse = await axios.get(`https://graph.facebook.com/${META_API_VERSION}/oauth/access_token`, {
+                params: {
+                    client_id: APP_ID,
+                    client_secret: APP_SECRET,
+                    redirect_uri: redirectUri,
+                    code: code
+                }
+            });
+            console.log(`✅ Success with redirect_uri: ${redirectUri}`);
+            break;  // If successful, break out of the loop
+        } catch (error) {
+            console.log(`❌ Failed with redirect_uri: ${redirectUri}`);
+            lastError = error;
+        }
+    }
+    
+    // If all attempts failed, return the last error
+    if (!tokenResponse) {
+        console.error('❌ Error during token exchange with all redirect_uri options:');
+        if (axios.isAxiosError(lastError) && lastError.response) {
+            console.error(`Status: ${lastError.response.status}`);
+            console.error('Data:', JSON.stringify(lastError.response.data, null, 2));
+        } else {
+            console.error(lastError);
+        }
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to exchange code for token with any redirect_uri configuration.' 
+        });
+    }
+
+    const shortLivedToken = tokenResponse.data.access_token;
+    console.log('✅ Short-Lived Access Token received.');
+
+    // --- NEW: Step 2: Exchange the short-lived token for a LONG-LIVED token ---
+    const longLivedTokenResponse = await axios.get(`https://graph.facebook.com/${META_API_VERSION}/oauth/access_token`, {
+        params: {
+            grant_type: 'fb_exchange_token',
+            client_id: APP_ID,
+            client_secret: APP_SECRET,
+            fb_exchange_token: shortLivedToken
+        }
+    });
+    const longLivedAccessToken = longLivedTokenResponse.data.access_token;
+    console.log('✅ Long-Lived Access Token received. This is the token to save!');
+
+    // Step 3: Use the IDs from the sessionInfo payload.
+    console.log(`Received WABA ID: ${wabaId} and Phone Number ID: ${phoneNumberId} from frontend.`);
+        
+    // TODO: Save the `longLivedAccessToken`, `wabaId`, and `phoneNumberId` to your database.
+    // This long-lived token is crucial for making API calls in the future.
+
+    // Step 4: Generate your platform's unique API key for the user.
+    const platformApiKey = `wsk_${crypto.randomBytes(32).toString('hex')}`;
+    console.log(`🔑 Generated a new safe API key for the user: ${platformApiKey}`);
+        
+    // TODO: Save this `platformApiKey` to the user's record in your database.
+
+    // Step 5: Initiate data syncs in the background using the long-lived token.
+    initiateContactSync(phoneNumberId, longLivedAccessToken);
+    initiateHistorySync(phoneNumberId, longLivedAccessToken);
+
+    // Step 6: Send a success response back to the user.
+    res.json({
+        success: true,
+        platformApiKey: platformApiKey,
+        wabaId: wabaId,
+    });
+
+} catch (error) {
+    // --- MODIFIED: Improved Error Handling ---
+    console.error('❌ Error during v4 onboarding flow:');
+    if (axios.isAxiosError(error) && error.response) {
+        console.error(`Status: ${error.response.status}`);
+        console.error('Data:', JSON.stringify(error.response.data, null, 2));
+    } else {
+        console.error(error);
+    }
+    res.status(500).json({ success: false, error: 'Failed to complete onboarding due to an internal server error.' });
+}
+});
+
+// --- Webhook Endpoint (Unchanged) ---
+app.get('/whatsapp-webhooks', (req, res) => {
+    if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === process.env.WEBHOOK_VERIFY_TOKEN) {
+        console.log('✅ Webhook Verified');
+        res.status(200).send(req.query['hub.challenge']);
+    } else {
+        res.sendStatus(403);
+    }
+});
+
+app.post('/whatsapp-webhooks', (req, res) => {
+    console.log('--- Incoming Webhook ---');
+    console.log(JSON.stringify(req.body, null, 2));
+    // TODO: Process webhook notifications.
+    res.sendStatus(200);
+});
+
+
+// --- Start the Server ---
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+});
+
+
+
