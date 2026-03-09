@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4 Theme Configuration */
+@theme {
+  --color-primary: #1fdb64;
+  --color-background-light: #f6f8f7;
+  --color-background-dark: #112117;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1c2e24;
+  --color-text-main: #111714;
+  --color-text-secondary: #648771;
+}
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #111714;
+  background: #f6f8f7;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Custom properties for gradients */
+  --gradient-primary: linear-gradient(135deg, #1fdb64 0%, #16a34a 100%);
+  --gradient-secondary: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+}
+
+html {
+  background: #f6f8f7;
+  color: #111714;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f6f8f7;
+  color: #111714;
+  font-family: 'Inter', sans-serif;
+}
+
+a {
+  font-weight: 500;
+  color: #111714;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #111714;
+}
+
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 3px solid #1fdb64;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
