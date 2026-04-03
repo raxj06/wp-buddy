@@ -75,7 +75,7 @@ const Layout = () => {
                         </div>
                         {isSidebarOpen && (
                             <span className="font-black text-xl text-gray-900 dark:text-white truncate">
-                                W Buddy
+                                Wapp Flo
                             </span>
                         )}
                     </div>
@@ -87,8 +87,8 @@ const Layout = () => {
                             key={item.path}
                             to={item.path}
                             className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${location.pathname === item.path
-                                    ? 'bg-gradient-primary text-white shadow-md'
-                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-gradient-primary text-white shadow-md'
+                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             <div className={`${location.pathname === item.path ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'}`}>

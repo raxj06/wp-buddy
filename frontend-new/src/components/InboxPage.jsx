@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { io } from 'socket.io-client';
 
 const InboxPage = () => {
     const { user } = useAuth();
@@ -10,8 +11,10 @@ const InboxPage = () => {
     const [loadingContacts, setLoadingContacts] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [newMessage, setNewMessage] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
     const [wabaData, setWabaData] = useState(null);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     // Fetch Contacts and WABA Account on mount
     useEffect(() => {
@@ -70,17 +73,43 @@ const InboxPage = () => {
         };
 
         fetchMessages();
-        // Optional: Set up polling here
-        const interval = setInterval(fetchMessages, 5000); // Poll every 5s
-        return () => clearInterval(interval);
-    }, [selectedContact]);
+        
+        // Socket.IO Integration
+        const socket = io(); // Connects to the same origin (proxied to backend in dev)
+        
+        socket.on('connect', () => {
+            console.log('Socket.IO Dashboard connected!', socket.id);
+        });
+
+        socket.on('new_message', (msg) => {
+            // Check if the message belongs to the currently active contact
+            if (msg.contact_id === selectedContact?.id) {
+                setMessages(prev => {
+                    // Prevent duplicates just in case
+                    if (prev.some(m => m.id === msg.id)) return prev;
+                    return [...prev, msg];
+                });
+                setTimeout(scrollToBottom, 50);
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [selectedContact?.id]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     const handleSendMessage = async () => {
-        if (!newMessage.trim() || !selectedContact || !wabaData) return;
+        if ((!newMessage.trim() && !selectedFile) || !selectedContact || !wabaData) return;
+
+        // If there's a file, we handle it as a media message
+        if (selectedFile) {
+            handleSendMedia();
+            return;
+        }
 
         const tempMsg = {
             id: 'temp-' + Date.now(),
@@ -123,6 +152,58 @@ const InboxPage = () => {
             }
         } catch (error) {
             console.error("Error sending message:", error);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
+
+    const handleSendMedia = async () => {
+        const tempMsg = {
+            id: 'temp-' + Date.now(),
+            direction: 'outbound',
+            body: { text: `[Sending Media: ${selectedFile.name}]` },
+            timestamp: new Date().toISOString(),
+            status: 'sending'
+        };
+
+        setMessages([...messages, tempMsg]);
+        const fileToUpload = selectedFile;
+        setSelectedFile(null); // Clear early
+        setNewMessage('');
+        scrollToBottom();
+
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('wabaId', wabaData.waba_id);
+            formData.append('phoneNumberId', wabaData.phone_number_id);
+            formData.append('contactId', selectedContact.id);
+            formData.append('type', fileToUpload.type.startsWith('image/') ? 'image' : 'audio');
+            formData.append('file', fileToUpload);
+            // WhatsApp media APIs usually need a single file param. Our backend handles media upload and message sending.
+            
+            const res = await fetch('/api/messages/media', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setMessages(prev => prev.map(m => m.id === tempMsg.id ? data.message : m));
+            } else {
+                console.error("Failed to send media:", data.error);
+                setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, status: 'failed' } : m));
+            }
+        } catch (error) {
+            console.error("Error sending media:", error);
+            setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, status: 'failed' } : m));
         }
     };
 
@@ -219,22 +300,48 @@ const InboxPage = () => {
                             </div>
 
                             {/* Input */}
-                            <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                                />
-                                <button
-                                    onClick={handleSendMessage}
-                                    disabled={!wabaData}
-                                    className="p-2 bg-green-500 text-white rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                </button>
+                            <div className="flex flex-col border-t border-gray-200">
+                                {selectedFile && (
+                                    <div className="bg-gray-100 p-2 text-sm flex items-center justify-between border-b border-gray-200">
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <span className="material-symbols-outlined text-[18px]">insert_drive_file</span>
+                                            {selectedFile.name}
+                                        </div>
+                                        <button onClick={() => setSelectedFile(null)} className="text-gray-500 hover:text-red-500">
+                                            <span className="material-symbols-outlined text-[18px]">close</span>
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="p-4 bg-gray-50 flex items-center gap-2 border-t-0">
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleFileChange} 
+                                        style={{ display: 'none' }} 
+                                        accept="image/*,audio/*"
+                                    />
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="h-10 w-10 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined font-light text-[22px]">attach_file</span>
+                                    </button>
+                                    <input
+                                        type="text"
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                        placeholder="Type a message..."
+                                        className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                                    />
+                                    <button
+                                        onClick={handleSendMessage}
+                                        disabled={!wabaData || (!newMessage.trim() && !selectedFile)}
+                                        className="p-2 bg-green-500 text-white rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                    </button>
+                                </div>
                             </div>
                         </>
                     ) : (

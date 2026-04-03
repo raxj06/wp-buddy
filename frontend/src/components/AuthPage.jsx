@@ -89,15 +89,15 @@ const AuthPage = () => {
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-            {isLogin ? 'Enter your details to access your dashboard' : 'Start your journey with W Buddy today'}
+            {isLogin ? 'Enter your details to access your dashboard' : 'Start your journey with Wapp Flo today'}
           </p>
         </div>
 
         {/* Message Alert */}
         {message.text && (
           <div className={`mb-6 p-4 rounded-xl text-sm font-medium flex items-center ${message.type === 'success'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
-              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
             }`}>
             {message.type === 'success' ? (
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>

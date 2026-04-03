@@ -114,3 +114,6 @@ react-frontend/node_modules/
 
 # Ngrok temporary files
 .ngrok/
+
+#antogravity agent files
+.agent

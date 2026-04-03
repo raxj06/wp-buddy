@@ -75,7 +75,7 @@ const AuthPage = () => {
                             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 text-primary">
                                 <span className="material-symbols-outlined text-2xl">chat_bubble</span>
                             </div>
-                            <h2 className="text-xl font-bold tracking-tight">W Buddy</h2>
+                            <h2 className="text-xl font-bold tracking-tight">Wapp Flo</h2>
                         </Link>
 
                         {/* Vertical Stepper */}
@@ -145,7 +145,7 @@ const AuthPage = () => {
                         {/* Headlines */}
                         <div className="mb-8 text-center md:text-left">
                             <h1 className="text-[#111714] text-3xl font-bold leading-tight mb-2">
-                                {isLogin ? 'Welcome back' : 'Welcome to W Buddy'}
+                                {isLogin ? 'Welcome back' : 'Welcome to Wapp Flo'}
                             </h1>
                             <p className="text-text-secondary text-base">
                                 {isLogin

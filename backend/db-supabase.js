@@ -96,6 +96,31 @@ const findUserById = async (id) => {
     }
 };
 
+// Update user profile function
+const updateUserProfile = async (id, name) => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .update({ name: name })
+            .eq('id', id)
+            .select('*')
+            .single();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (data) {
+            const { password: _, ...userWithoutPassword } = data;
+            return userWithoutPassword;
+        }
+        
+        return data;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
 // WhatsApp account functions
 const saveWhatsAppAccount = async (userId, wabaId, phoneNumberId, accessToken, platformApiKey) => {
     try {
@@ -161,6 +186,26 @@ const getWhatsAppAccountByWabaId = async (wabaId) => {
         }
 
         return data;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+// Webhook configuration functions
+
+const deleteWhatsAppAccount = async (userId, wabaId) => {
+    try {
+        const { data, error } = await supabase
+            .from('whatsapp_accounts')
+            .delete()
+            .eq('waba_id', wabaId)
+            .eq('user_id', userId);
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        return true;
     } catch (error) {
         throw new Error(error.message);
     }
@@ -366,6 +411,87 @@ const getContacts = async (userId) => {
     }
 };
 
+const getContactById = async (userId, contactId) => {
+    try {
+        const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('id', contactId)
+            .eq('user_id', userId)
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+const getContactByPhone = async (userId, phoneNumber) => {
+    try {
+        const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('phone_number', phoneNumber)
+            .maybeSingle();
+
+        if (error) throw new Error(error.message);
+        return data;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+const updateContactAttributes = async (contactId, attributes) => {
+    try {
+        const { data, error } = await supabase
+            .from('contacts')
+            .update({ attributes: attributes })
+            .eq('id', contactId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+const addContactTag = async (contactId, tag) => {
+    try {
+        // Fetch current tags
+        const { data: contact, error: fetchError } = await supabase
+            .from('contacts')
+            .select('tags')
+            .eq('id', contactId)
+            .single();
+
+        if (fetchError) throw new Error(fetchError.message);
+
+        const currentTags = contact.tags || [];
+        if (currentTags.includes(tag)) {
+            // Tag already exists
+            return contact;
+        }
+
+        const newTags = [...currentTags, tag];
+
+        const { data, error } = await supabase
+            .from('contacts')
+            .update({ tags: newTags })
+            .eq('id', contactId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
 // Messages Functions
 const createMessage = async (userId, wabaId, phoneNumberId, contactId, direction, type, body, status, waMessageId) => {
     try {
@@ -378,7 +504,7 @@ const createMessage = async (userId, wabaId, phoneNumberId, contactId, direction
                 contact_id: contactId,
                 direction: direction,
                 type: type,
-                body: body,
+                body: typeof body === 'object' ? JSON.stringify(body) : body,
                 status: status,
                 wa_message_id: waMessageId
             }])
@@ -400,6 +526,32 @@ const getMessages = async (userId, contactId) => {
             .eq('user_id', userId)
             .eq('contact_id', contactId)
             .order('timestamp', { ascending: true });
+
+        if (error) throw new Error(error.message);
+        
+        // Parse the body string back to an object if it looks like JSON
+        return data.map(msg => {
+            if (msg.body && typeof msg.body === 'string' && msg.body.trim().startsWith('{')) {
+                try {
+                    msg.body = JSON.parse(msg.body);
+                } catch (e) {
+                    // Keep original string if parsing fails
+                }
+            }
+            return msg;
+        });
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+const updateMessageStatus = async (waMessageId, status) => {
+    try {
+        const { data, error } = await supabase
+            .from('messages')
+            .update({ status: status })
+            .eq('wa_message_id', waMessageId)
+            .select();
 
         if (error) throw new Error(error.message);
         return data;
@@ -460,13 +612,89 @@ const getActiveFlows = async () => {
     }
 };
 
+// Analytics Functions
+const getAnalyticsStats = async (userId) => {
+    try {
+        // Run multiple count queries in parallel
+        const [
+            sentResult,
+            deliveredResult,
+            readResult,
+            repliedResult,
+            flowsResult,
+            contactsResult
+        ] = await Promise.all([
+            // Total Sent (outbound)
+            supabase.from('messages').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('direction', 'outbound'),
+            
+            // Delivered & Read (outbound)
+            supabase.from('messages').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('direction', 'outbound')
+                .in('status', ['delivered', 'read']),
+            
+            // Read (outbound)
+            supabase.from('messages').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('direction', 'outbound')
+                .eq('status', 'read'),
+            
+            // Replied (inbound)
+            supabase.from('messages').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('direction', 'inbound'),
+            
+            // Active Flows
+            supabase.from('automation_flows').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('is_active', true),
+                
+            // Active Contacts
+            supabase.from('contacts').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+        ]);
+
+        // Get outbound messages from last 7 days for the chart
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const { data: recentMessages, error: chartError } = await supabase
+            .from('messages')
+            .select('timestamp')
+            .eq('user_id', userId)
+            .eq('direction', 'outbound')
+            .gte('timestamp', sevenDaysAgo.toISOString());
+
+        if (chartError) throw new Error(chartError.message);
+
+        return {
+            stats: {
+                totalSent: sentResult.count || 0,
+                delivered: deliveredResult.count || 0,
+                read: readResult.count || 0,
+                replied: repliedResult.count || 0,
+                activeFlows: flowsResult.count || 0,
+                activeContacts: contactsResult.count || 0,
+            },
+            recentMessages: recentMessages || []
+        };
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
 module.exports = {
     createUser,
     findUserByEmail,
     findUserById,
+    updateUserProfile,
     saveWhatsAppAccount,
     getWhatsAppAccountsByUserId,
     getWhatsAppAccountByWabaId,
+    deleteWhatsAppAccount,
     saveWebhookConfig,
     getWebhookConfigByWabaId,
     getWebhookConfigsByUserId,
@@ -477,9 +705,15 @@ module.exports = {
     deleteFlow,
     createContact,
     getContacts,
+    getContactById,
+    getContactByPhone,
+    updateContactAttributes,
     createMessage,
     getMessages,
+    updateMessageStatus,
     createCampaign,
     getCampaigns,
-    getActiveFlows
+    getActiveFlows,
+    getAnalyticsStats,
+    addContactTag
 };

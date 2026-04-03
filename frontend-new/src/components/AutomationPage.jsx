@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Layout from './Layout';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -47,58 +48,94 @@ const CustomEdge = ({
 };
 
 // ─── Custom Nodes ──────────────────────────────────────────
-const MenuNode = ({ data, selected }) => (
-    <div className={`bg-white rounded-xl shadow-xl transition-all ${selected ? 'ring-2 ring-primary ring-offset-2' : 'border border-gray-200'}`}>
-        <Handle type="target" position={Position.Left} className="w-4 h-4 !bg-primary border-2 border-white" />
-        <div className="p-3 bg-primary/10 border-b border-primary/20 rounded-t-lg flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">menu</span>
-            <span className="font-bold text-sm text-[#111714]">{data.label}</span>
-        </div>
-        <div className="p-4 flex flex-col gap-3">
-            <p className="text-sm text-text-secondary bg-gray-50 p-2 rounded border border-gray-100">{data.message}</p>
-            {data.buttons?.length > 0 && (
-                <div className="flex flex-col gap-2">
-                    {data.buttons.map((btn, i) => (
-                        <div key={i} className={`h-8 rounded ${i === 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-gray-100 text-text-secondary'} text-xs font-bold flex items-center justify-center`}>{btn}</div>
-                    ))}
-                </div>
-            )}
-        </div>
-        <Handle type="source" position={Position.Right} className="w-4 h-4 !bg-primary border-2 border-white" />
-    </div>
-);
-
-const StartNode = ({ data }) => (
-    <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all">
-        <div className="p-3 bg-gray-50 border-b border-gray-100 rounded-t-lg flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">flag</span>
-            <span className="font-bold text-sm">{data.label}</span>
-        </div>
-        <div className="p-4">
-            <p className="text-xs text-text-secondary font-medium uppercase mb-1">Trigger</p>
-            <p className="text-sm font-medium">{data.trigger}</p>
-        </div>
-        <Handle type="source" position={Position.Right} className="w-4 h-4 !bg-primary border-2 border-white" />
-    </div>
-);
-
-const ConditionNode = ({ data }) => (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200 hover:border-amber-400 hover:shadow-lg transition-all">
-        <Handle type="target" position={Position.Left} className="w-4 h-4 !bg-amber-400 border-2 border-white" />
-        <div className="p-3 bg-amber-50 border-b border-amber-100 rounded-t-lg flex items-center gap-2">
-            <span className="material-symbols-outlined text-amber-500 text-[18px]">call_split</span>
-            <span className="font-bold text-sm">{data.label}</span>
-        </div>
-        <div className="p-4">
-            <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500">If:</span>
-                <span className="text-xs font-bold text-gray-700">{data.condition}</span>
+const MenuNode = ({ id, data, selected }) => {
+    const { setNodes } = useReactFlow();
+    return (
+        <div className={`bg-white rounded-xl shadow-xl transition-all group ${selected ? 'ring-2 ring-primary ring-offset-2' : 'border border-gray-200'}`}>
+            <Handle type="target" position={Position.Left} className="w-4 h-4 !bg-primary border-2 border-white" />
+            <button
+                onClick={(e) => { e.stopPropagation(); setNodes((nds) => nds.filter((n) => n.id !== id)); }}
+                className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-md hover:bg-red-50 nodrag nopan z-10"
+                title="Delete Node"
+            >
+                <span className="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+            <div className="p-3 bg-primary/10 border-b border-primary/20 rounded-t-lg flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[18px]">menu</span>
+                <span className="font-bold text-sm text-[#111714]">{data.label}</span>
             </div>
+            <div className="p-4 flex flex-col gap-3">
+                {data.nodeType === 'image' && data.imageUrl && (
+                    <img src={data.imageUrl} className="w-full h-24 object-cover rounded-md border border-gray-200" />
+                )}
+                {data.nodeType === 'audio' && data.audioUrl && (
+                    <div className="w-full h-8 bg-pink-50 rounded-md flex items-center justify-center text-pink-500 text-xs font-bold border border-pink-100"><span className="material-symbols-outlined mr-1 text-[16px]">mic</span> Audio File</div>
+                )}
+                {data.nodeType === 'api' && (
+                    <div className="text-xs font-mono bg-cyan-50 p-2 text-cyan-700 break-all rounded border border-cyan-100">{data.method || 'GET'} {data.url || 'No URL'}</div>
+                )}
+                {data.nodeType === 'tag' && (
+                    <div className="text-xs font-bold bg-indigo-50 p-2 text-indigo-700 flex items-center gap-1 rounded border border-indigo-100"><span className="material-symbols-outlined text-[14px]">label</span> {data.tag || 'No Tag'}</div>
+                )}
+                {data.message && (
+                    <p className="text-sm text-text-secondary bg-gray-50 p-2 rounded border border-gray-100">{data.message}</p>
+                )}
+                {data.buttons?.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                        {data.buttons.map((btn, i) => (
+                            <div key={i} className={`h-8 rounded ${i === 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-gray-100 text-text-secondary'} text-xs font-bold flex items-center justify-center`}>{btn}</div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <Handle type="source" position={Position.Right} className="w-4 h-4 !bg-primary border-2 border-white" />
         </div>
-        <Handle type="source" position={Position.Right} id="true" style={{ top: '30%' }} className="w-4 h-4 !bg-green-500 border-2 border-white" />
-        <Handle type="source" position={Position.Right} id="false" style={{ top: '70%' }} className="w-4 h-4 !bg-red-500 border-2 border-white" />
-    </div>
-);
+    );
+};
+
+const StartNode = ({ data, selected }) => {
+    return (
+        <div className={`bg-white rounded-xl shadow-md border-2 transition-all group ${selected ? 'border-primary ring-2 ring-primary ring-offset-2 shadow-lg' : 'border-gray-200 hover:border-primary/50 hover:shadow-lg'}`}>
+            <div className="p-3 bg-gray-50 border-b border-gray-100 rounded-t-lg flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[18px]">flag</span>
+                <span className="font-bold text-sm">{data.label}</span>
+            </div>
+            <div className="p-4">
+                <p className="text-xs text-text-secondary font-medium uppercase mb-1">Trigger</p>
+                <p className="text-sm font-medium">{data.trigger}</p>
+            </div>
+            <Handle type="source" position={Position.Right} className="w-4 h-4 !bg-primary border-2 border-white" />
+        </div>
+    );
+};
+
+const ConditionNode = ({ id, data, selected }) => {
+    const { setNodes } = useReactFlow();
+    return (
+        <div className={`bg-white rounded-xl shadow-md border transition-all group ${selected ? 'ring-2 ring-primary ring-offset-2 border-amber-400 shadow-lg' : 'border-gray-200 hover:border-amber-400 hover:shadow-lg'}`}>
+            <button
+                onClick={(e) => { e.stopPropagation(); if (confirm('Delete this condition?')) { setNodes((nds) => nds.filter((n) => n.id !== id)); } }}
+                className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-md hover:bg-red-50 nodrag nopan z-10"
+                title="Delete Node"
+            >
+                <span className="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+            <Handle type="target" position={Position.Left} className="w-4 h-4 !bg-amber-400 border-2 border-white" />
+            <div className="p-3 bg-amber-50 border-b border-amber-100 rounded-t-lg flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-500 text-[18px]">call_split</span>
+                <span className="font-bold text-sm">{data.label}</span>
+            </div>
+            <div className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-500">If:</span>
+                    <span className="text-xs font-bold text-gray-700">{data.condition}</span>
+                </div>
+            </div>
+            <Handle type="source" position={Position.Right} id="true" style={{ top: '30%' }} className="w-4 h-4 !bg-green-500 border-2 border-white" />
+            <Handle type="source" position={Position.Right} id="false" style={{ top: '70%' }} className="w-4 h-4 !bg-red-500 border-2 border-white" />
+        </div>
+    );
+};
 
 const nodeTypes = { menuNode: MenuNode, startNode: StartNode, conditionNode: ConditionNode };
 const edgeTypes = { customEdge: CustomEdge };
@@ -130,7 +167,8 @@ const AutomationPage = () => {
     const [testMessage, setTestMessage] = useState('');
     const [simLogs, setSimLogs] = useState([]);
     const [simulating, setSimulating] = useState(false);
-
+    const [simPausedNodeId, setSimPausedNodeId] = useState(null); // Track state in simulation
+    const [simMessages, setSimMessages] = useState([]); // Array of { role: 'bot'|'user', content, buttons? }
     // ReactFlow state
     const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
@@ -226,16 +264,22 @@ const AutomationPage = () => {
 
     // ─── Delete Flow ───────────────────────────────────────
     const handleDelete = async (flowId) => {
-        if (!confirm('Are you sure you want to delete this flow?')) return;
+        if (!window.confirm('Are you sure you want to delete this flow? This action cannot be undone.')) return;
         try {
             const token = localStorage.getItem('token');
-            await fetch(`/api/flows/${flowId}`, {
+            const res = await fetch(`/api/flows/${flowId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            setFlows(flows.filter(f => f.id !== flowId));
+            const data = await res.json();
+            if (data.success) {
+                setFlows(prev => prev.filter(f => f.id !== flowId));
+            } else {
+                alert('Failed to delete flow: ' + (data.error || 'Unknown error'));
+            }
         } catch (err) {
             console.error('Error deleting flow:', err);
+            alert('Error deleting flow. Please check your connection.');
         }
     };
 
@@ -308,39 +352,73 @@ const AutomationPage = () => {
     };
 
     // ─── Test Bot Simulation ───────────────────────────────
-    const runSimulation = async () => {
-        if (!testMessage.trim()) return;
+    const runSimulation = async (overrideMessage = null) => {
+        const msg = overrideMessage || testMessage;
+        if (!msg.trim()) return;
         if (!currentFlowId) {
             alert('Please save the flow first before testing.');
             return;
         }
+
         setSimulating(true);
-        setSimLogs(prev => [...prev, { type: 'user', message: testMessage, timestamp: new Date().toISOString() }]);
-        const msg = testMessage;
-        setTestMessage('');
+        if (!overrideMessage) setTestMessage('');
+        
+        // Add user message to chat UI
+        setSimMessages(prev => [...prev, { role: 'user', content: msg }]);
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/flows/simulate', {
+            const response = await fetch('/api/flows/simulate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ flowId: currentFlowId, message: msg })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    flowId: currentFlowId,
+                    message: msg,
+                    currentNodeId: simPausedNodeId
+                })
             });
-            const data = await res.json();
-            if (data.success && data.logs) {
-                // Add logs one by one with a delay for visual effect
-                for (let i = 0; i < data.logs.length; i++) {
-                    await new Promise(r => setTimeout(r, 300));
-                    setSimLogs(prev => [...prev, data.logs[i]]);
+
+            const data = await response.json();
+            if (data.success) {
+                // Technical logs for visual feedback in ReactFlow (future)
+                setSimLogs(prev => [...prev, ...data.logs]);
+                
+                // Add bot messages to chat history
+                if (data.messages && data.messages.length > 0) {
+                    setSimMessages(prev => [...prev, ...data.messages]);
+                }
+                
+                setSimPausedNodeId(data.currentNodeId);
+                
+                if (data.finished) {
+                    setSimMessages(prev => [...prev, { role: 'system', content: 'Flow finished.' }]);
+                    setSimPausedNodeId(null);
                 }
             } else {
-                setSimLogs(prev => [...prev, { type: 'error', message: data.error || 'Simulation failed', timestamp: new Date().toISOString() }]);
+                setSimLogs(prev => [...prev, { type: 'error', message: data.error || 'Simulation failed' }]);
+                setSimMessages(prev => [...prev, { role: 'system', content: `Error: ${data.error || 'Simulation failed'}` }]);
             }
-        } catch (err) {
-            setSimLogs(prev => [...prev, { type: 'error', message: err.message, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+            console.error('Simulation error:', error);
+            setSimMessages(prev => [...prev, { role: 'system', content: 'Connection error. Please try again.' }]);
         } finally {
             setSimulating(false);
+            // Scroll to bottom
+            setTimeout(() => {
+                const container = document.getElementById('sim-logs');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
         }
+    };
+
+    const resetSimulation = () => {
+        setSimMessages([]);
+        setSimLogs([]);
+        setSimPausedNodeId(null);
+        setTestMessage('');
     };
 
     // ═══════════════════════════════════════════════════════
@@ -348,22 +426,22 @@ const AutomationPage = () => {
     // ═══════════════════════════════════════════════════════
     if (view === 'list') {
         return (
-            <div className="flex flex-col h-screen bg-background-light">
-                <header className="h-16 flex items-center justify-between px-6 bg-white border-b border-gray-200 shadow-sm shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                            <span className="material-symbols-outlined font-bold">smart_toy</span>
+            <Layout>
+                <div className="flex flex-col h-full bg-background-light">
+                    <header className="h-16 flex items-center justify-between px-6 bg-white border-b border-gray-200 shadow-sm shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                                <span className="material-symbols-outlined font-bold">smart_toy</span>
+                            </div>
+                            <h2 className="text-lg font-bold tracking-tight">Automation Flows</h2>
                         </div>
-                        <h2 className="text-lg font-bold tracking-tight">Automation Flows</h2>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Link to="/dashboard" className="text-sm font-medium text-text-secondary hover:text-primary transition-colors">← Dashboard</Link>
-                        <button onClick={openNewFlow} className="h-9 px-4 flex items-center gap-2 rounded-lg bg-primary hover:bg-[#1ac759] text-[#111714] shadow-sm shadow-primary/20 text-sm font-bold transition-all active:scale-95">
-                            <span className="material-symbols-outlined text-[18px]">add</span>
-                            New Flow
-                        </button>
-                    </div>
-                </header>
+                        <div className="flex items-center gap-3">
+                            <button onClick={openNewFlow} className="h-9 px-4 flex items-center gap-2 rounded-lg bg-primary hover:bg-[#1ac759] text-[#111714] shadow-sm shadow-primary/20 text-sm font-bold transition-all active:scale-95">
+                                <span className="material-symbols-outlined text-[18px]">add</span>
+                                New Flow
+                            </button>
+                        </div>
+                    </header>
 
                 <div className="flex-1 overflow-y-auto p-6">
                     {loadingFlows ? (
@@ -416,7 +494,8 @@ const AutomationPage = () => {
                         </div>
                     )}
                 </div>
-            </div>
+                </div>
+            </Layout>
         );
     }
 
@@ -488,10 +567,10 @@ const AutomationPage = () => {
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Messaging</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    { icon: 'chat', color: 'text-primary', label: 'Text', type: 'menuNode', data: { label: 'Text Message', message: 'Enter your message...' } },
-                                    { icon: 'image', color: 'text-purple-500', label: 'Image', type: 'menuNode', data: { label: 'Image', message: 'Send an image' } },
-                                    { icon: 'list', color: 'text-blue-500', label: 'List', type: 'menuNode', data: { label: 'List', message: 'Choose an option', buttons: ['Option 1', 'Option 2'] } },
-                                    { icon: 'mic', color: 'text-pink-500', label: 'Audio', type: 'menuNode', data: { label: 'Audio', message: 'Send audio message' } },
+                                    { icon: 'chat', color: 'text-primary', label: 'Text', type: 'menuNode', data: { label: 'Text Message', message: 'Enter your message...', nodeType: 'text' } },
+                                    { icon: 'image', color: 'text-purple-500', label: 'Image', type: 'menuNode', data: { label: 'Image', message: 'Send an image', nodeType: 'image' } },
+                                    { icon: 'list', color: 'text-blue-500', label: 'List', type: 'menuNode', data: { label: 'List', message: 'Choose an option', buttons: ['Option 1', 'Option 2'], nodeType: 'list' } },
+                                    { icon: 'mic', color: 'text-pink-500', label: 'Audio', type: 'menuNode', data: { label: 'Audio', message: 'Send audio message', nodeType: 'audio' } },
                                 ].map((item) => (
                                     <div key={item.label} draggable onDragStart={(e) => onDragStart(e, item.type, item.data)} className="flex flex-col items-center justify-center p-3 rounded-lg border border-gray-200 hover:border-primary/50 hover:bg-gray-50 cursor-grab active:cursor-grabbing transition-all bg-white group">
                                         <span className={`material-symbols-outlined ${item.color} mb-2 group-hover:scale-110 transition-transform`}>{item.icon}</span>
@@ -515,8 +594,8 @@ const AutomationPage = () => {
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Actions</h3>
                             <div className="space-y-2">
                                 {[
-                                    { icon: 'api', color: 'text-cyan-500', label: 'API Request', data: { label: 'API Request', message: 'Configure API endpoint' } },
-                                    { icon: 'label', color: 'text-indigo-500', label: 'Add Tag', data: { label: 'Add Tag', message: 'Tag customer' } },
+                                    { icon: 'api', color: 'text-cyan-500', label: 'API Request', data: { label: 'API Request', nodeType: 'api', method: 'GET', url: '' } },
+                                    { icon: 'label', color: 'text-indigo-500', label: 'Add Tag', data: { label: 'Add Tag', nodeType: 'tag', tag: '' } },
                                 ].map((item) => (
                                     <div key={item.label} draggable onDragStart={(e) => onDragStart(e, 'menuNode', item.data)} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary/50 bg-white cursor-grab hover:shadow-sm">
                                         <span className={`material-symbols-outlined ${item.color}`}>{item.icon}</span>
@@ -564,12 +643,90 @@ const AutomationPage = () => {
                                 <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Node Name</label>
                                 <input className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none" type="text" value={selectedNode.data.label} onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })} />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Message Text</label>
-                                <textarea className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none resize-none" rows="4" value={selectedNode.data.message} onChange={(e) => updateNodeData(selectedNode.id, { message: e.target.value })} />
-                                <p className="text-[10px] text-gray-400">Supports variables like {'{{ name }}'}</p>
-                            </div>
-                            {selectedNode.data.buttons && (
+                            {/* Audio Upload Input */}
+                            {selectedNode.data.nodeType === 'audio' && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Audio File</label>
+                                    {selectedNode.data.audioUrl ? (
+                                        <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50 group">
+                                            <span className="material-symbols-outlined text-pink-500">mic</span>
+                                            <span className="text-sm font-medium text-gray-700 truncate flex-1">Audio Uploaded</span>
+                                            <button onClick={() => updateNodeData(selectedNode.id, { audioUrl: null })} className="w-6 h-6 bg-red-100 hover:bg-red-500 hover:text-white text-red-500 rounded-full flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-[14px]">close</span></button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-primary transition-colors">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <span className="material-symbols-outlined text-gray-400 mb-2">audio_file</span>
+                                                <p className="text-sm font-medium text-gray-500">Click to upload audio</p>
+                                            </div>
+                                            <input type="file" className="hidden" accept="audio/*" onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => updateNodeData(selectedNode.id, { audioUrl: reader.result });
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }} />
+                                        </label>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Image Upload Input */}
+                            { (selectedNode.data.nodeType === 'image' || (!selectedNode.data.nodeType && selectedNode.data.label?.includes('Image'))) && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Image File</label>
+                                    {selectedNode.data.imageUrl ? (
+                                        <div className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                                            <img src={selectedNode.data.imageUrl} alt="Node attachment" className="w-full h-32 object-contain" />
+                                            <button 
+                                                onClick={() => updateNodeData(selectedNode.id, { imageUrl: null })}
+                                                className="absolute top-2 right-2 w-8 h-8 bg-black/50 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors"
+                                                title="Remove Image"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-primary transition-colors">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <span className="material-symbols-outlined text-gray-400 mb-2">cloud_upload</span>
+                                                <p className="text-sm font-medium text-gray-500">Click to upload image</p>
+                                                <p className="text-xs text-gray-400 mt-1">PNG, JPG</p>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                className="hidden" 
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            updateNodeData(selectedNode.id, { imageUrl: reader.result });
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Message Text Input */}
+                            {['text', 'image', 'list'].includes(selectedNode.data.nodeType || 'text') && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">
+                                        {(selectedNode.data.nodeType === 'image' || (!selectedNode.data.nodeType && selectedNode.data.label?.includes('Image'))) ? 'Image Caption (Optional)' : 'Message Text'}
+                                    </label>
+                                    <textarea className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none resize-none" rows="4" value={selectedNode.data.message || ''} onChange={(e) => updateNodeData(selectedNode.id, { message: e.target.value })} />
+                                    <p className="text-[10px] text-gray-400">Supports variables like {'{{ name }}'}</p>
+                                </div>
+                            )}
+
+                            {/* Interactive Buttons */}
+                            {['text', 'image', 'list'].includes(selectedNode.data.nodeType || 'text') && selectedNode.data.buttons && (
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Interactive Buttons</label>
@@ -590,6 +747,35 @@ const AutomationPage = () => {
                                             </button>
                                         )}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* API Properties */}
+                            {selectedNode.data.nodeType === 'api' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Method</label>
+                                        <select className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none" value={selectedNode.data.method || 'GET'} onChange={(e) => updateNodeData(selectedNode.id, { method: e.target.value })}>
+                                            <option value="GET">GET</option>
+                                            <option value="POST">POST</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">URL Endpoint</label>
+                                        <input className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none" type="text" placeholder="https://api.example.com/webhook" value={selectedNode.data.url || ''} onChange={(e) => updateNodeData(selectedNode.id, { url: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Payload (JSON)</label>
+                                        <textarea className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none resize-none font-mono" rows="4" placeholder='{"key": "value"}' value={selectedNode.data.payload || ''} onChange={(e) => updateNodeData(selectedNode.id, { payload: e.target.value })} />
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Tag Properties */}
+                            {selectedNode.data.nodeType === 'tag' && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-gray-500 tracking-wide">Tag Name</label>
+                                    <input className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 outline-none" type="text" placeholder="e.g. VIP, leads" value={selectedNode.data.tag || ''} onChange={(e) => updateNodeData(selectedNode.id, { tag: e.target.value })} />
                                 </div>
                             )}
                         </div>
@@ -633,32 +819,71 @@ const AutomationPage = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50" id="sim-logs">
-                            {simLogs.length === 0 && (
-                                <div className="text-center py-8">
-                                    <span className="material-symbols-outlined text-gray-300 text-4xl mb-2 block">chat_bubble</span>
-                                    <p className="text-xs text-gray-400">Type a message below to simulate an incoming WhatsApp message and watch the flow engine process it step by step.</p>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" id="sim-logs">
+                            {simMessages.length === 0 && (
+                                <div className="text-center py-12">
+                                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="material-symbols-outlined text-primary text-3xl">chat_bubble</span>
+                                    </div>
+                                    <h4 className="font-bold text-gray-700 mb-1">Test your Flow</h4>
+                                    <p className="text-xs text-gray-400 px-8">Send a message that matches your trigger keyword to start the automation simulator.</p>
                                 </div>
                             )}
-                            {simLogs.map((log, i) => {
-                                if (log.type === 'user') {
-                                    return <div key={i} className="flex justify-end"><div className="bg-primary text-[#111714] px-3 py-2 rounded-xl rounded-br-sm text-sm max-w-[80%] font-medium">{log.message}</div></div>;
+                            
+                            {simMessages.map((msg, i) => {
+                                if (msg.role === 'system') {
+                                    return (
+                                        <div key={i} className="flex justify-center my-2">
+                                            <span className="bg-gray-200 text-gray-600 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                                                {msg.content}
+                                            </span>
+                                        </div>
+                                    );
                                 }
-                                const bgColor = log.type === 'error' ? 'bg-red-50 border-red-200 text-red-700'
-                                    : log.type === 'success' ? 'bg-green-50 border-green-200 text-green-700'
-                                        : log.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                            : log.type === 'step' ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                : log.type === 'action' ? 'bg-purple-50 border-purple-200 text-purple-700'
-                                                    : 'bg-white border-gray-200 text-gray-700';
+                                
+                                const isUser = msg.role === 'user';
                                 return (
-                                    <div key={i} className={`${bgColor} border rounded-lg px-3 py-2 text-xs font-mono leading-relaxed animate-fade-in`}>
-                                        {log.step && <span className="font-bold mr-1">Step {log.step}:</span>}
-                                        {log.node && <span className="font-semibold text-gray-500 mr-1">[{log.node}]</span>}
-                                        {log.message}
+                                    <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fade-in`}>
+                                        <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm shadow-sm ${
+                                            isUser 
+                                                ? 'bg-primary text-[#111714] rounded-tr-none font-medium' 
+                                                : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
+                                        }`}>
+                                            {msg.imageUrl && (
+                                                <img src={msg.imageUrl} alt="attachment" className="w-full max-h-40 object-cover rounded-lg mb-2 border border-gray-200 bg-gray-50" />
+                                            )}
+                                            {msg.audioUrl && (
+                                                <div className="flex items-center gap-2 bg-gray-100 p-2 rounded-lg mb-2 border border-gray-200">
+                                                    <span className="material-symbols-outlined text-pink-500">mic</span>
+                                                    <span className="text-xs text-gray-600 font-medium truncate flex-1">Audio Audio</span>
+                                                </div>
+                                            )}
+                                            {msg.content}
+                                        </div>
+                                        
+                                        {!isUser && msg.buttons && msg.buttons.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2 w-full max-w-[85%]">
+                                                {msg.buttons.map((btn, j) => (
+                                                    <button 
+                                                        key={j}
+                                                        onClick={() => runSimulation(btn)}
+                                                        disabled={simulating}
+                                                        className="bg-white border border-primary text-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-primary/5 transition-colors flex-1 text-center truncate min-w-[80px]"
+                                                    >
+                                                        {btn}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
-                            {simulating && <div className="flex items-center gap-2 text-xs text-gray-400"><div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div> Processing...</div>}
+                            
+                            {simulating && (
+                                <div className="flex items-start gap-2 animate-pulse">
+                                    <div className="bg-gray-200 h-8 w-12 rounded-2xl rounded-tl-none"></div>
+                                </div>
+                            )}
                         </div>
                         <div className="p-3 border-t border-gray-200 bg-white flex gap-2 shrink-0">
                             <input
@@ -666,12 +891,12 @@ const AutomationPage = () => {
                                 value={testMessage}
                                 onChange={(e) => setTestMessage(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && runSimulation()}
-                                placeholder='Type "hello" to test...'
+                                placeholder={simPausedNodeId ? 'Click a button or type reply...' : 'Type trigger (e.g. "hello")...'}
                                 className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/50"
                                 disabled={simulating}
                             />
-                            <button onClick={runSimulation} disabled={simulating} className="px-4 py-2 bg-primary hover:bg-[#1ac759] text-[#111714] rounded-lg font-bold text-sm transition-colors disabled:opacity-50">
-                                Send
+                            <button onClick={() => runSimulation()} disabled={simulating} className="w-10 h-10 flex items-center justify-center bg-primary hover:bg-[#1ac759] text-[#111714] rounded-full transition-colors disabled:opacity-50 shrink-0">
+                                <span className="material-symbols-outlined">send</span>
                             </button>
                         </div>
                     </div>

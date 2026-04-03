@@ -13,7 +13,7 @@ const HomePage = () => {
                             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 text-primary">
                                 <span className="material-symbols-outlined text-2xl">chat_bubble</span>
                             </div>
-                            <span className="text-lg font-bold tracking-tight text-[#111714]">W Buddy</span>
+                            <span className="text-lg font-bold tracking-tight text-[#111714]">Wapp Flo</span>
                         </div>
 
                         {/* Desktop Nav */}
@@ -48,7 +48,7 @@ const HomePage = () => {
                             </div>
 
                             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-[#111714]">
-                                Supercharge your WhatsApp Business with <span className="text-primary">W Buddy</span>
+                                Supercharge your WhatsApp Business with <span className="text-primary">Wapp Flo</span>
                             </h1>
 
                             <p className="text-lg text-text-secondary leading-relaxed max-w-lg">
@@ -257,7 +257,7 @@ const HomePage = () => {
                                 Ready to revolutionize your customer communication?
                             </h2>
                             <p className="text-lg text-gray-400 max-w-xl">
-                                Join 2,000+ businesses using W Buddy to drive sales and support on WhatsApp.
+                                Join 2,000+ businesses using Wapp Flo to drive sales and support on WhatsApp.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                                 <Link to="/auth" className="flex h-14 min-w-[180px] items-center justify-center rounded-xl bg-primary px-8 text-lg font-bold text-[#111714] hover:bg-[#1bc458] transition-colors shadow-lg">
@@ -281,7 +281,7 @@ const HomePage = () => {
                                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-[#111714]">
                                     <span className="material-symbols-outlined">chat_bubble</span>
                                 </div>
-                                <span className="text-xl font-bold text-[#111714]">W Buddy</span>
+                                <span className="text-xl font-bold text-[#111714]">Wapp Flo</span>
                             </div>
                             <p className="text-sm text-text-secondary max-w-xs mb-6">
                                 The leading WhatsApp Business API solution for modern enterprises. Built for scale, reliability, and ease of use.
@@ -320,7 +320,7 @@ const HomePage = () => {
                         </div>
                     </div>
                     <div className="border-t border-[#f0f4f2] pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-sm text-gray-400">© 2024 W Buddy Inc. All rights reserved.</p>
+                        <p className="text-sm text-gray-400">© 2024 Wapp Flo Inc. All rights reserved.</p>
                         <div className="flex items-center gap-2 text-sm text-gray-400">
                             <span className="w-2 h-2 rounded-full bg-green-500"></span>
                             System Operational
