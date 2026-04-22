@@ -89,7 +89,6 @@ exports.deleteFlow = async (req, res) => {
 };
 
 // --- FLOW SIMULATION (for demo/testing) ---
-// Simulates an incoming message and runs the flow engine, returning step-by-step results
 exports.simulateFlow = async (req, res) => {
     const { flowId, message, currentNodeId: startAtNodeId } = req.body;
     if (!flowId || !message) {
@@ -97,7 +96,7 @@ exports.simulateFlow = async (req, res) => {
     }
 
     const logs = [];
-    let messages = []; // Array of message objects for the chat UI: { role: 'bot'|'user', content: string, buttons?: string[] }
+    let messages = []; 
 
     try {
         const flow = await getFlowById(flowId);
@@ -114,7 +113,7 @@ exports.simulateFlow = async (req, res) => {
         let triggered = false;
         let currentNodeId = startAtNodeId;
 
-        // Phase 1: Check Trigger (if not already in a flow session)
+        // Phase 1: Check Trigger
         if (!currentNodeId) {
             const keywords = (flow.trigger_keyword || '').split(',').map(k => k.trim().toLowerCase());
             triggered = keywords.some(kw => kw && (msgLower === kw || msgLower.includes(kw)));
@@ -122,9 +121,19 @@ exports.simulateFlow = async (req, res) => {
             logs.push({ type: 'info', message: `Incoming: "${message}" | Trigger keywords: [${keywords.join(', ')}]` });
             
             if (triggered) {
-                logs.push({ type: 'success', message: `✅ Trigger matched. Starting flow.` });
+                logs.push({ type: 'success', message: `✅ Trigger matched. Checking flow nodes...` });
+                
+                const structure = nodes.map(n => `[${n.id}:${n.type}]`).join(', ');
+                logs.push({ type: 'info', message: `📦 Internal Data: Nodes found: ${structure}` });
+
                 const startNode = nodes.find(n => n.type === 'startNode');
-                currentNodeId = startNode ? startNode.id : null;
+                if (startNode) {
+                    currentNodeId = startNode.id;
+                    logs.push({ type: 'info', message: `📍 Start node identified (ID: ${currentNodeId}).` });
+                } else {
+                    logs.push({ type: 'error', message: `❌ CRITICAL ERROR: This flow has no "startNode" defined.` });
+                    currentNodeId = null;
+                }
             } else {
                 logs.push({ type: 'warning', message: `⚠️ No match for trigger keyword.` });
                 return res.json({ success: true, triggered: false, logs, messages: [{ role: 'system', content: 'No trigger match' }] });
@@ -139,91 +148,100 @@ exports.simulateFlow = async (req, res) => {
         let steps = 0;
         let pausedAtNodeId = null;
 
+        logs.push({ type: 'info', message: `🚀 Starting execution loop. CurrentNodeId: ${currentNodeId}` });
+
         while (currentNodeId && steps < 20) {
             steps++;
+            const node = nodes.find(n => String(n.id) === String(currentNodeId));
+            
+            if (!node) {
+                logs.push({ type: 'error', message: `❌ Node with ID ${currentNodeId} not found in the flow data.` });
+                break;
+            }
+
+            logs.push({ type: 'info', message: `📍 Step ${steps}: Visiting node "${node.data?.label || 'unnamed'}" (ID: ${node.id}, Type: ${node.type})` });
+
             if (visited.has(currentNodeId)) {
-                logs.push({ type: 'error', message: `Loop detected at ${currentNodeId}` });
+                logs.push({ type: 'error', message: `🛑 Loop detected at node ${currentNodeId}.` });
                 break;
             }
             visited.add(currentNodeId);
 
-            const node = nodes.find(n => n.id === currentNodeId);
-            if (!node) break;
+            // Logic for different node types
+            if (node.id === startAtNodeId && node.type === 'menuNode') {
+                const buttons = node.data?.buttons?.filter(b => b && b.trim() !== '') || [];
+                const buttonIndex = buttons.findIndex(b => b.toLowerCase().trim() === message.toLowerCase().trim());
+                
+                if (buttonIndex !== -1) {
+                    const handleId = `btn_${buttonIndex}`;
+                    logs.push({ type: 'info', message: `🔍 Matching button "${buttons[buttonIndex]}" (Handle: ${handleId})` });
+                    const nextEdge = edges.find(e => String(e.source) === String(currentNodeId) && e.sourceHandle === handleId && nodes.some(n => String(n.id) === String(e.target)));
+                    
+                    if (nextEdge) {
+                        currentNodeId = nextEdge.target;
+                    } else {
+                        logs.push({ type: 'warning', message: `⚠️ Button matched but no outgoing edge found.` });
+                        currentNodeId = null;
+                    }
+                } else {
+                    const nextEdge = edges.find(e => String(e.source) === String(currentNodeId) && !e.sourceHandle && nodes.some(n => String(n.id) === String(e.target)));
+                    currentNodeId = nextEdge ? nextEdge.target : null;
+                }
+                
+                if (!currentNodeId) break;
+                continue;
+            }
 
             if (node.type === 'startNode') {
-                const nextEdge = edges.find(e => e.source === currentNodeId);
-                currentNodeId = nextEdge ? nextEdge.target : null;
+                const validEdge = edges.find(e => String(e.source) === String(currentNodeId) && nodes.some(n => String(n.id) === String(e.target)));
+                if (validEdge) {
+                    logs.push({ type: 'success', message: `➡️ Moving from Start to next node: ${validEdge.target}` });
+                    currentNodeId = validEdge.target;
+                } else {
+                    logs.push({ type: 'warning', message: `⚠️ Start node has no valid connections.` });
+                    currentNodeId = null;
+                }
             } 
             else if (node.type === 'menuNode') {
                 const nType = node.data?.nodeType || 'text';
+                const buttons = node.data?.buttons?.filter(b => b && b.trim() !== '') || [];
                 
-                if (nType === 'api') {
-                    const msgStr = `🌐 Simulated API ${node.data?.method || 'GET'} to ${node.data?.url || '?'}`;
-                    logs.push({ type: 'step', message: msgStr });
-                    messages.push({ role: 'system', content: msgStr });
-                    
-                    const nextEdge = edges.find(e => e.source === currentNodeId);
-                    currentNodeId = nextEdge ? nextEdge.target : null;
-                }
-                else if (nType === 'tag') {
-                    const msgStr = `🏷️ Simulated Tag Added: ${node.data?.tag}`;
-                    logs.push({ type: 'step', message: msgStr });
-                    messages.push({ role: 'system', content: msgStr });
-                    
-                    const nextEdge = edges.find(e => e.source === currentNodeId);
-                    currentNodeId = nextEdge ? nextEdge.target : null;
-                }
-                else {
-                    // Text, Image, Audio, List
-                    const buttons = node.data?.buttons?.filter(b => b.trim() !== '') || [];
-                    
-                    let logMsg = `Bot: "${node.data?.message || ''}"`;
-                    if (nType === 'image') logMsg = `📷 Bot sent image: ${node.data?.message || 'No caption'}`;
-                    if (nType === 'audio') logMsg = `🎵 Bot sent audio: ${node.data?.message || 'No caption'}`;
-                    
-                    messages.push({
-                        role: 'bot',
-                        content: node.data?.message || '',
-                        buttons: buttons,
-                        nodeType: nType,
-                        imageUrl: node.data?.imageUrl,
-                        audioUrl: node.data?.audioUrl
-                    });
-                    
-                    logs.push({ type: 'step', message: logMsg });
+                messages.push({
+                    role: 'bot',
+                    content: node.data?.message || '',
+                    buttons: buttons,
+                    nodeType: nType,
+                    imageUrl: node.data?.imageUrl,
+                    audioUrl: node.data?.audioUrl
+                });
+                
+                logs.push({ type: 'step', message: `📢 BOT: ${node.data?.message || '[Attachment]'}` });
 
-                    // If it has buttons, we PAUSE here and return to frontend
-                    if (buttons.length > 0) {
-                        pausedAtNodeId = node.id;
-                        currentNodeId = null; // Break loop
-                    } else {
-                        const nextEdge = edges.find(e => e.source === currentNodeId);
-                        currentNodeId = nextEdge ? nextEdge.target : null;
-                    }
+                if (buttons.length > 0) {
+                    logs.push({ type: 'info', message: `⏸️ Pausing for button response.` });
+                    pausedAtNodeId = node.id;
+                    currentNodeId = null; 
+                } else {
+                    const nextEdge = edges.find(e => String(e.source) === String(currentNodeId) && nodes.some(n => String(n.id) === String(e.target)));
+                    currentNodeId = nextEdge ? nextEdge.target : null;
                 }
             }  
             else if (node.type === 'conditionNode') {
                 const condition = node.data?.condition || '';
                 let result = false;
-                
-                // Simple eval logic matching flowEngine.js
                 if (condition.includes('==')) {
                     const val = condition.split('==').map(s => s.trim().replace(/["']/g, ''))[1]?.toLowerCase();
                     result = msgLower === val;
-                } else if (condition.toLowerCase().includes('contains')) {
-                    const m = condition.match(/contains\s*\(\s*["'](.+?)["']\s*\)/i);
-                    if (m) result = msgLower.includes(m[1].toLowerCase());
                 } else {
                     result = msgLower === condition.toLowerCase().trim();
                 }
 
-                logs.push({ type: 'step', message: `Condition "${condition}" -> ${result}` });
                 const handleId = result ? 'true' : 'false';
-                const nextEdge = edges.find(e => e.source === currentNodeId && e.sourceHandle === handleId);
+                const nextEdge = edges.find(e => String(e.source) === String(currentNodeId) && e.sourceHandle === handleId && nodes.some(n => String(n.id) === String(e.target)));
                 currentNodeId = nextEdge ? nextEdge.target : null;
             } 
             else {
-                const nextEdge = edges.find(e => e.source === currentNodeId);
+                const nextEdge = edges.find(e => String(e.source) === String(currentNodeId) && nodes.some(n => String(n.id) === String(e.target)));
                 currentNodeId = nextEdge ? nextEdge.target : null;
             }
         }

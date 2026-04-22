@@ -2,21 +2,16 @@ const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils');
 const { createUser, findUserByEmail, findUserById, updateUserProfile } = require('../db-supabase');
 
-const fs = require('fs');
-const path = require('path');
-const logFile = path.join(__dirname, 'auth.log');
-const log = (msg) => fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
-
 exports.signup = async (req, res) => {
     try {
         let { email, password, name } = req.body;
-        
+
         // Trim inputs to prevent whitespace issues
         email = email?.trim().toLowerCase();
         password = password?.trim();
         name = name?.trim();
 
-        log(`Signup attempt: email=${email}, name=${name}, passwordLength=${password?.length}`);
+        console.log(`Signup attempt: email=${email}, name=${name}`);
 
         // Validate input
         if (!email || !password || !name) {
@@ -54,12 +49,12 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         let { email, password } = req.body;
-        
+
         // Trim inputs to prevent whitespace issues
         email = email?.trim().toLowerCase();
         password = password?.trim();
 
-        log(`Login attempt for: ${email}, passwordLength=${password?.length}`);
+        console.log(`Login attempt for: ${email}`);
 
         // Validate input
         if (!email || !password) {
@@ -68,7 +63,6 @@ exports.login = async (req, res) => {
 
         // Find user
         const user = await findUserByEmail(email);
-        log(`User found in DB for login: ${user ? 'Yes' : 'No'}`);
         
         if (!user) {
             return res.status(401).json({ success: false, error: 'Invalid email or password' });
@@ -76,8 +70,7 @@ exports.login = async (req, res) => {
 
         // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
-        log(`Bcrypt comparison for ${email}: ${isMatch}`);
-        
+
         if (!isMatch) {
             return res.status(401).json({ success: false, error: 'Invalid email or password' });
         }
@@ -122,13 +115,13 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const { name } = req.body;
-        
+
         if (!name) {
             return res.status(400).json({ success: false, error: 'Name is required' });
         }
 
         const updatedUser = await updateUserProfile(req.user.id, name);
-        
+
         if (!updatedUser) {
             return res.status(404).json({ success: false, error: 'User not found' });
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const AnalyticsPage = () => {
     const [loading, setLoading] = useState(true);
@@ -22,7 +23,7 @@ const AnalyticsPage = () => {
                 const token = localStorage.getItem('token');
                 if (!token) throw new Error('Not authenticated');
 
-                const response = await fetch('/api/analytics/overview', {
+                const response = await fetch(`${API_BASE_URL}/api/analytics/overview`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -183,4 +184,3 @@ const AnalyticsPage = () => {
 };
 
 export default AnalyticsPage;
-

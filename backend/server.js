@@ -1,23 +1,27 @@
 // Import required packages
 const express = require('express');
 const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
 const dotenvResult = require('dotenv').config();
 
 console.log('Current directory:', process.cwd());
 if (dotenvResult.error) {
-    console.error('Error loading .env file:', dotenvResult.error);
+    console.warn('Note: .env file not found or could not be loaded. Environment variables should be provided by the host (Render/Vercel).');
 } else {
     console.log('.env loaded successfully');
-    console.log('META_APP_ID:', process.env.META_APP_ID ? 'SET' : 'NOT SET');
 }
 
 // --- Startup Environment Variable Check ---
-const requiredEnvVars = ['META_APP_ID', 'META_APP_SECRET', 'HOST_URL', 'WEBHOOK_VERIFY_TOKEN'];
+const requiredEnvVars = ['META_APP_ID', 'META_APP_SECRET', 'WEBHOOK_VERIFY_TOKEN', 'SUPABASE_URL', 'SUPABASE_KEY', 'JWT_SECRET'];
 for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
         console.error(`FATAL ERROR: Environment variable ${envVar} is not set.`);
-        process.exit(1);
+        if (process.env.NODE_ENV === 'production') {
+            process.exit(1);
+        } else {
+            console.warn(`Continuing in development mode, but ${envVar} is missing.`);
+        }
     }
 }
 
@@ -26,10 +30,19 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
+// Middleware
+app.use(cors({
+    origin: '*', // For production, replace with your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    credentials: true
+}));
+app.use(express.json());
+
 // Initialize Socket.io
 const io = new Server(server, {
     cors: {
-        origin: "*", // Adjust in production
+        origin: "*", // Adjust in production to match frontend URL
         methods: ["GET", "POST"]
     }
 });
@@ -40,30 +53,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log(`🔌 Client disconnected: ${socket.id}`);
     });
-});
-
-// Middleware to parse JSON
-app.use(express.json());
-
-// CORS middleware
-app.use((req, res, next) => {
-    // Allow all origins for development, restrict in production
-    const origin = req.headers.origin;
-    if (origin) {
-        res.header('Access-Control-Allow-Origin', origin);
-    } else {
-        res.header('Access-Control-Allow-Origin', '*');
-    }
-
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-    } else {
-        next();
-    }
 });
 
 // --- Import Modular Routes ---

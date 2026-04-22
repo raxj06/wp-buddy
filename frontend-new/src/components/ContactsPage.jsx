@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const ContactsPage = () => {
     const { logout } = useAuth(); // Assuming useAuth provides a token or we get it from localStorage
@@ -30,7 +31,7 @@ const ContactsPage = () => {
             if (!token) return;
 
             // 1. Fetch WABA ID (needed for creating contacts)
-            const accountsRes = await fetch('/api/whatsapp/accounts', {
+            const accountsRes = await fetch(`${API_BASE_URL}/api/whatsapp/accounts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const accountsData = await accountsRes.json();
@@ -39,7 +40,7 @@ const ContactsPage = () => {
             }
 
             // 2. Fetch Contacts
-            const contactsRes = await fetch('/api/contacts', {
+            const contactsRes = await fetch(`${API_BASE_URL}/api/contacts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const contactsData = await contactsRes.json();
@@ -80,7 +81,7 @@ const ContactsPage = () => {
                 attributes: {}
             };
 
-            const response = await fetch('/api/contacts', {
+            const response = await fetch(`${API_BASE_URL}/api/contacts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -125,7 +126,7 @@ const ContactsPage = () => {
             data.append('file', csvFile);
             data.append('wabaId', wabaId);
 
-            const response = await fetch('/api/contacts/upload', {
+            const response = await fetch(`${API_BASE_URL}/api/contacts/upload`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

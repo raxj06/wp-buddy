@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
+import { API_BASE_URL } from '../config';
 
 const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState('business-profile');
@@ -30,7 +31,7 @@ const SettingsPage = () => {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch('http://localhost:3000/api/auth/profile', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -48,7 +49,7 @@ const SettingsPage = () => {
     const fetchAccounts = async () => {
         setIsLoadingAccounts(true);
         try {
-            const res = await fetch('http://localhost:3000/api/whatsapp/accounts', {
+            const res = await fetch(`${API_BASE_URL}/api/whatsapp/accounts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -66,7 +67,7 @@ const SettingsPage = () => {
         e.preventDefault();
         setIsSavingProfile(true);
         try {
-            const res = await fetch('http://localhost:3000/api/auth/profile', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
                 method: 'PUT',
                 headers: { 
                     'Authorization': `Bearer ${token}`,
@@ -92,7 +93,7 @@ const SettingsPage = () => {
         setIsSavingAccount(true);
         setAccountError('');
         try {
-            const res = await fetch('http://localhost:3000/api/whatsapp/accounts', {
+            const res = await fetch(`${API_BASE_URL}/api/whatsapp/accounts`, {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${token}`,
@@ -118,7 +119,7 @@ const SettingsPage = () => {
     const handleRemoveAccount = async (wabaId) => {
         if (!window.confirm('Are you sure you want to remove this WhatsApp account? This will break campaigns.')) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/whatsapp/accounts/${wabaId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/whatsapp/accounts/${wabaId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

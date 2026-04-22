@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const CampaignsPage = () => {
     const { user } = useAuth();
@@ -54,7 +55,7 @@ const CampaignsPage = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/campaigns', {
+            const res = await fetch(`${API_BASE_URL}/api/campaigns`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -170,7 +171,7 @@ const CampaignsPage = () => {
                 });
             }
 
-            const res = await fetch('/api/campaigns', {
+            const res = await fetch(`${API_BASE_URL}/api/campaigns`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -243,7 +244,7 @@ const CampaignsPage = () => {
             data.append('templateLanguage', selectedTemplate.language);
             data.append('variableMapping', JSON.stringify(variableMapping));
 
-            const response = await fetch('/api/campaigns/broadcast', {
+            const response = await fetch(`${API_BASE_URL}/api/campaigns/broadcast`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

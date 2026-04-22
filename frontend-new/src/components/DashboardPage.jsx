@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from './Layout';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL, META_APP_ID } from '../config';
 
 const DashboardPage = () => {
     const { user } = useAuth();
@@ -40,7 +41,7 @@ const DashboardPage = () => {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch('/api/whatsapp/accounts', {
+            const response = await fetch(`${API_BASE_URL}/api/whatsapp/accounts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -72,7 +73,7 @@ const DashboardPage = () => {
             script.src = 'https://connect.facebook.net/en_US/sdk.js';
             script.onload = () => {
                 window.FB.init({
-                    appId: '1138116971586519',
+                    appId: META_APP_ID || '1138116971586519',
                     cookie: true,
                     xfbml: true,
                     version: 'v24.0'
@@ -152,7 +153,7 @@ const DashboardPage = () => {
     const sendDataToServer = async (data) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('/complete-onboarding-v4', {
+            const response = await fetch(`${API_BASE_URL}/complete-onboarding-v4`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -175,7 +176,7 @@ const DashboardPage = () => {
     const showAccountDetails = async (wabaId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/whatsapp/accounts/${wabaId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/whatsapp/accounts/${wabaId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

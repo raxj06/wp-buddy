@@ -346,7 +346,8 @@ exports.handleWebhook = async (req, res) => {
                                         messageText,
                                         accessToken: wabaAccount.access_token,
                                         contactId: contact.id,
-                                        startNodeId: startNodeId
+                                        startNodeId: startNodeId,
+                                        isResuming: true
                                     }, { updateContactAttributes, addContactTag });
                                     continue; // Skip trigger checking since we resumed an existing flow
                                 } else {

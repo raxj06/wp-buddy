@@ -68,42 +68,58 @@ async function executeFlow(flow, context, db) {
                 break;
 
             case 'menuNode':
-                // The frontend uses 'menuNode' as a generic action node with diverse types
-                const nodeType = currentNode.data?.nodeType || 'text';
-                
-                if (nodeType === 'image' || nodeType === 'audio' || nodeType === 'video') {
-                    await executeMediaNode(currentNode, context);
-                } else if (nodeType === 'api') {
-                    await executeApiNode(currentNode, context);
-                } else if (nodeType === 'tag') {
-                    await executeTagNode(currentNode, context, db);
+                // Check if we're resuming to pick a specific branch based on user click
+                if (context.isResuming && context.startNodeId === currentNode.id) {
+                    console.log(`  🔍 Resuming from MenuNode: matching response "${context.messageText}" to buttons...`);
+                    
+                    const buttons = currentNode.data?.buttons || [];
+                    const activeButtons = buttons.filter(b => b && b.trim() !== '');
+                    const buttonIndex = activeButtons.findIndex(b => 
+                        b.toLowerCase().trim() === context.messageText?.toLowerCase().trim()
+                    );
+                    
+                    if (buttonIndex !== -1) {
+                        const handleId = `btn_${buttonIndex}`;
+                        console.log(`  ✅ Match found! Following branch: ${handleId}`);
+                        nextNodeId = getNextNodeId(currentNode.id, edges, nodes, handleId);
+                    } else {
+                        console.log(`  ℹ️ No button match, following default branch.`);
+                        nextNodeId = getNextNodeId(currentNode.id, edges, nodes);
+                    }
+                    
+                    context.isResuming = false; // Reset for next nodes in this run
                 } else {
-                    // Default to text/interactive message
-                    await executeMenuNode(currentNode, context);
-                }
+                    // Standard execution (first time visiting this node)
+                    const nodeType = currentNode.data?.nodeType || 'text';
+                    
+                    if (nodeType === 'image' || nodeType === 'audio' || nodeType === 'video') {
+                        await executeMediaNode(currentNode, context);
+                    } else if (nodeType === 'api') {
+                        await executeApiNode(currentNode, context);
+                    } else if (nodeType === 'tag') {
+                        await executeTagNode(currentNode, context, db);
+                    } else {
+                        await executeMenuNode(currentNode, context);
+                    }
 
-                // Check if this node expects user interaction (buttons)
-                const hasButtons = currentNode.data?.buttons && 
-                                  currentNode.data.buttons.filter(b => b && b.trim() !== '').length > 0;
+                    // Check if this node expects user interaction (buttons)
+                    const hasButtons = currentNode.data?.buttons && 
+                                      currentNode.data.buttons.filter(b => b && b.trim() !== '').length > 0;
 
-                if (hasButtons) {
-                   nextNodeId = getNextNodeId(currentNode.id, edges, nodes);
-                   
-                   if (nextNodeId && db && db.updateContactAttributes) {
-                       console.log(`  ⏸️ Pausing flow here. Waiting for user to click a button.`);
-                       await db.updateContactAttributes(context.contactId, {
-                           current_flow_id: flow.id,
-                           current_node_id: nextNodeId
-                       });
-                   } else {
-                       if (db && db.updateContactAttributes) {
-                           await db.updateContactAttributes(context.contactId, {}); 
-                       }
-                   }
-                   currentNodeId = null; 
-                   break;
-                } else {
-                   nextNodeId = getNextNodeId(currentNode.id, edges, nodes);
+                    if (hasButtons) {
+                        // Pause at THIS node, don't follow edges yet
+                        if (db && db.updateContactAttributes) {
+                            console.log(`  ⏸️ Pausing flow at node ${currentNode.id}. Waiting for user feedback.`);
+                            await db.updateContactAttributes(context.contactId, {
+                                current_flow_id: flow.id,
+                                current_node_id: currentNode.id // Use this node so we resume into it
+                            });
+                        }
+                        currentNodeId = null; 
+                        break;
+                    } else {
+                        nextNodeId = getNextNodeId(currentNode.id, edges, nodes);
+                    }
                 }
                 break;
 

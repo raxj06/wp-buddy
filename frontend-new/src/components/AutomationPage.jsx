@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from './Layout';
+import { API_BASE_URL } from '../config';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -82,13 +83,24 @@ const MenuNode = ({ id, data, selected }) => {
                 )}
                 {data.buttons?.length > 0 && (
                     <div className="flex flex-col gap-2">
-                        {data.buttons.map((btn, i) => (
-                            <div key={i} className={`h-8 rounded ${i === 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-gray-100 text-text-secondary'} text-xs font-bold flex items-center justify-center`}>{btn}</div>
+                        {data.buttons.filter(b => b && b.trim() !== '').map((btn, i) => (
+                            <div key={i} className="relative group/btn">
+                                <div className={`h-8 rounded ${i === 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-gray-100 text-text-secondary'} text-xs font-bold flex items-center justify-center px-2 truncate`}>{btn}</div>
+                                <Handle 
+                                    type="source" 
+                                    position={Position.Right} 
+                                    id={`btn_${i}`}
+                                    style={{ top: '50%', right: '-8px' }}
+                                    className="w-3 h-3 !bg-primary border border-white" 
+                                />
+                            </div>
                         ))}
                     </div>
                 )}
             </div>
-            <Handle type="source" position={Position.Right} className="w-4 h-4 !bg-primary border-2 border-white" />
+            {(!data.buttons || data.buttons.filter(b => b && b.trim() !== '').length === 0) && (
+                <Handle type="source" position={Position.Right} className="w-4 h-4 !bg-primary border-2 border-white" />
+            )}
         </div>
     );
 };
@@ -168,7 +180,8 @@ const AutomationPage = () => {
     const [simLogs, setSimLogs] = useState([]);
     const [simulating, setSimulating] = useState(false);
     const [simPausedNodeId, setSimPausedNodeId] = useState(null); // Track state in simulation
-    const [simMessages, setSimMessages] = useState([]); // Array of { role: 'bot'|'user', content, buttons? }
+    const [simMessages, setSimMessages] = useState([]); 
+    const [showSimLogs, setShowSimLogs] = useState(false);
     // ReactFlow state
     const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
@@ -183,7 +196,7 @@ const AutomationPage = () => {
         setLoadingFlows(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/flows', {
+            const res = await fetch(`${API_BASE_URL}/api/flows`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -232,13 +245,13 @@ const AutomationPage = () => {
 
             let res;
             if (currentFlowId) {
-                res = await fetch(`/api/flows/${currentFlowId}`, {
+                res = await fetch(`${API_BASE_URL}/api/flows/${currentFlowId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
                 });
             } else {
-                res = await fetch('/api/flows', {
+                res = await fetch(`${API_BASE_URL}/api/flows`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
@@ -267,7 +280,7 @@ const AutomationPage = () => {
         if (!window.confirm('Are you sure you want to delete this flow? This action cannot be undone.')) return;
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`/api/flows/${flowId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/flows/${flowId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -287,7 +300,7 @@ const AutomationPage = () => {
     const togglePublish = async (flow) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`/api/flows/${flow.id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/flows/${flow.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ is_active: !flow.is_active })
@@ -368,7 +381,7 @@ const AutomationPage = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('/api/flows/simulate', {
+            const response = await fetch(`${API_BASE_URL}/api/flows/simulate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -813,21 +826,53 @@ const AutomationPage = () => {
                                 <h3 className="font-bold text-sm">Test Bot — Flow Simulator</h3>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button onClick={() => setSimLogs([])} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Clear</button>
+                                <button 
+                                    onClick={() => setShowSimLogs(!showSimLogs)}
+                                    className={`text-[10px] uppercase font-bold px-2 py-1 rounded transition-all ${showSimLogs ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                >
+                                    {showSimLogs ? 'Chat' : 'Logs'}
+                                </button>
+                                <button onClick={resetSimulation} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Clear</button>
                                 <button onClick={() => setShowTestBot(false)} className="text-gray-400 hover:text-primary">
                                     <span className="material-symbols-outlined text-[18px]">close</span>
                                 </button>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" id="sim-logs">
-                            {simMessages.length === 0 && (
-                                <div className="text-center py-12">
-                                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <span className="material-symbols-outlined text-primary text-3xl">chat_bubble</span>
-                                    </div>
-                                    <h4 className="font-bold text-gray-700 mb-1">Test your Flow</h4>
-                                    <p className="text-xs text-gray-400 px-8">Send a message that matches your trigger keyword to start the automation simulator.</p>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" id="sim-logs">
+                            {showSimLogs ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">Technical Execution Trace</p>
+                                    {simLogs.length === 0 ? (
+                                        <div className="text-center py-10 opacity-50">
+                                            <span className="material-symbols-outlined text-4xl mb-2">terminal</span>
+                                            <p className="text-xs italic">No logs yet. start the flow by typing your trigger.</p>
+                                        </div>
+                                    ) : (
+                                        simLogs.map((log, i) => (
+                                            <div key={i} className={`p-2 rounded border text-[11px] font-mono whitespace-pre-wrap break-all ${
+                                                log.type === 'error' ? 'bg-red-50 border-red-100 text-red-600' :
+                                                log.type === 'success' ? 'bg-green-50 border-green-100 text-green-600' :
+                                                log.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-600' :
+                                                log.type === 'step' ? 'bg-blue-50 border-blue-100 text-blue-600' :
+                                                'bg-white border-gray-100 text-gray-500'
+                                            }`}>
+                                                {log.message}
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
+                            ) : (
+                                <>
+                                    {simMessages.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <span className="material-symbols-outlined text-primary text-3xl">chat_bubble</span>
+                                            </div>
+                                            <h4 className="font-bold text-gray-700 mb-1">Test your Flow</h4>
+                                            <p className="text-xs text-gray-400 px-8">Send a message that matches your trigger keyword to start the automation simulator.</p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                             
                             {simMessages.map((msg, i) => {

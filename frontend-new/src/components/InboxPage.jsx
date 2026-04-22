@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { io } from 'socket.io-client';
+import { API_BASE_URL, SOCKET_URL } from '../config';
 
 const InboxPage = () => {
     const { user } = useAuth();
@@ -23,7 +24,7 @@ const InboxPage = () => {
                 const token = localStorage.getItem('token');
 
                 // Fetch WABA Account
-                const accRes = await fetch('/api/whatsapp/accounts', {
+                const accRes = await fetch(`${API_BASE_URL}/api/whatsapp/accounts`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const accData = await accRes.json();
@@ -32,7 +33,7 @@ const InboxPage = () => {
                 }
 
                 // Fetch Contacts
-                const contactsRes = await fetch('/api/contacts', {
+                const contactsRes = await fetch(`${API_BASE_URL}/api/contacts`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const contactsData = await contactsRes.json();
@@ -57,7 +58,7 @@ const InboxPage = () => {
             setLoadingMessages(true);
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`/api/messages/${selectedContact.id}`, {
+                const res = await fetch(`${API_BASE_URL}/api/messages/${selectedContact.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -75,7 +76,7 @@ const InboxPage = () => {
         fetchMessages();
         
         // Socket.IO Integration
-        const socket = io(); // Connects to the same origin (proxied to backend in dev)
+        const socket = io(SOCKET_URL || window.location.origin);
         
         socket.on('connect', () => {
             console.log('Socket.IO Dashboard connected!', socket.id);
@@ -126,7 +127,7 @@ const InboxPage = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/messages/send', {
+            const res = await fetch(`${API_BASE_URL}/api/messages/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ const InboxPage = () => {
             formData.append('file', fileToUpload);
             // WhatsApp media APIs usually need a single file param. Our backend handles media upload and message sending.
             
-            const res = await fetch('/api/messages/media', {
+            const res = await fetch(`${API_BASE_URL}/api/messages/media`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
